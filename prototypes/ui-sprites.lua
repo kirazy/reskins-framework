@@ -2,8 +2,8 @@ local function create_label_sprite(label)
 	data:extend({
 		{
 			type = "sprite",
-			name = "reskins-lib-" .. label .. "-tier-label",
-			filename = "__reskins-framework__/graphics/icons/sprites/tier-labels/icon-" .. label .. ".png",
+			name = "reskins-framework-" .. label .. "-tier-label",
+			filename = "__reskins-framework__/graphics/ui-sprites/tiers/icon-" .. label .. ".png",
 			flags = { "gui-icon" },
 			size = 40,
 			mipmap_count = 2,

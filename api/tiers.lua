@@ -1,18 +1,14 @@
+local sprite_utils = { icons = require("__reskins-sprite-utils__.icons") }
+local _settings = require("__reskins-framework__.api.settings")
+
 --- Provides methods for working with tier labels and tints.
 ---
 ---### Examples
 ---```lua
 ---local _tiers = require("__reskins-framework__.api.tiers")
 ---```
----@class Reskins.Lib.Tiers
+---@class Reskins.Api.Tiers
 local _tiers = {}
-
----@type Reskins.Lib.Icons
-local _icons = require("__reskins-framework__.api.icons")
----@type Reskins.Lib.Sprites
-local _sprites = require("__reskins-framework__.api.sprites")
----@type Reskins.Lib.Settings
-local _settings = require("__reskins-framework__.api.settings")
 
 ---
 ---Indicates whether tier labels should be added to icons or not.
@@ -20,7 +16,7 @@ local _settings = require("__reskins-framework__.api.settings")
 ---### Value
 ---`true` if tier labels should be added to icons; otherwise, `false`.
 ---@type boolean
-_tiers.is_tier_labeling_enabled = _settings.get_value("reskins-lib-icon-tier-labeling") == true
+_tiers.show_labels = _settings.get_value("reskins-framework-show-tier-labels") == true
 
 ---
 ---Indicates whether tier labels should be added to pipe-type entity icons or not.
@@ -28,7 +24,7 @@ _tiers.is_tier_labeling_enabled = _settings.get_value("reskins-lib-icon-tier-lab
 ---### Value
 ---`true` if tier labels should be added to pipe-type entity icons; otherwise, `false`.
 ---@type boolean
-_tiers.is_pipe_tier_labeling_enabled = _settings.get_value("reskins-bobs-do-pipe-tier-labeling") == true
+_tiers.show_labels_on_pipes = _settings.get_value("reskins-framework-show-tier-labels-on-pipes") == true
 
 ---@alias TierLabelStyle
 ---| '"chevron"' # Chevrons.
@@ -45,7 +41,7 @@ _tiers.is_pipe_tier_labeling_enabled = _settings.get_value("reskins-bobs-do-pipe
 ---### Value
 ---The current style of tier labels to use.
 ---@type TierLabelStyle
-_tiers.tier_labeling_style = _settings.get_value("reskins-lib-icon-tier-labeling-style")
+_tiers.tier_label_style = _settings.get_value("reskins-framework-tier-label-style")
 
 ---
 ---Defines values for a given prototype's tier for either traditional or progression tier mapping.
@@ -53,22 +49,18 @@ _tiers.tier_labeling_style = _settings.get_value("reskins-lib-icon-tier-labeling
 ---@field tier integer # The traditional tier of the prototype.
 ---@field prog_tier integer? # The progression tier of the prototype.
 
-local is_using_custom_tier_colors = _settings.get_value("reskins-lib-customize-tier-colors") == true
-local is_using_angels_tier_colors = _settings.get_value("reskins-angels-use-angels-tier-colors") == true
-local is_using_angels_belt_tier_colors = is_using_angels_tier_colors
-	and (_settings.get_value("reskins-angels-belts-use-angels-tier-colors") == true)
-local is_using_basic_belt_override = _settings.get_value("reskins-bobs-do-basic-belts-separately") == true
+local is_using_custom_tier_colors = _settings.get_value("reskins-framework-use-custom-tier-colors") == true
 
 ---@type data.Color[]
 local custom_tier_colors = {
 	---@type data.Color
-	[0] = _settings.get_value("reskins-lib-custom-colors-tier-0"),
-	[1] = _settings.get_value("reskins-lib-custom-colors-tier-1"),
-	[2] = _settings.get_value("reskins-lib-custom-colors-tier-2"),
-	[3] = _settings.get_value("reskins-lib-custom-colors-tier-3"),
-	[4] = _settings.get_value("reskins-lib-custom-colors-tier-4"),
-	[5] = _settings.get_value("reskins-lib-custom-colors-tier-5"),
-	[6] = _settings.get_value("reskins-lib-custom-colors-tier-6"),
+	[0] = _settings.get_value("reskins-framework-custom-colors-tier-0"),
+	[1] = _settings.get_value("reskins-framework-custom-colors-tier-1"),
+	[2] = _settings.get_value("reskins-framework-custom-colors-tier-2"),
+	[3] = _settings.get_value("reskins-framework-custom-colors-tier-3"),
+	[4] = _settings.get_value("reskins-framework-custom-colors-tier-4"),
+	[5] = _settings.get_value("reskins-framework-custom-colors-tier-5"),
+	[6] = _settings.get_value("reskins-framework-custom-colors-tier-6"),
 }
 
 ---@type data.Color[]
@@ -82,23 +74,6 @@ local standard_tier_colors = {
 	[5] = util.color("#2ee55c"), -- 1.1.7: 16c746, 1.1.6: 23de55
 	[6] = util.color("#ff8533"), -- 1.1.7: ff7700
 }
-
----@type data.Color[]
-local angels_tier_colors = {
-	-- Core Angel's set
-	[1] = util.color("#595959"), -- Gray
-	[2] = util.color("#2957cc"), -- Blue
-	[3] = util.color("#cc2929"), -- Red
-	[4] = util.color("#ccae29"), -- Yellow
-	-- Pending
-	---@type data.Color
-	[0] = util.color("#262626"),
-	[5] = util.color("#16c746"),
-	[6] = util.color("#ff8533"),
-}
-
----@type data.Color
-local basic_belt_color_override = _settings.get_value("reskins-bobs-basic-belts-color")
 
 ---
 ---Gets the color for the given `tier`.
@@ -119,8 +94,6 @@ function _tiers.get_tint(tier)
 
 	if is_using_custom_tier_colors then
 		return util.copy(custom_tier_colors[tier])
-	elseif is_using_angels_tier_colors then
-		return util.copy(angels_tier_colors[tier])
 	else
 		return util.copy(standard_tier_colors[tier])
 	end
@@ -130,7 +103,7 @@ end
 ---@param tier integer # The tier to get a color for; must be between 0 and 6.
 ---@param prog_tier? integer # The progression tier to get a color for; must be between 0 and 6.
 ---@return integer # The tier appropriate for the current settings.
-local function get_tier_from_parameters(tier, prog_tier)
+local function select_tier_for_current_mapping(tier, prog_tier)
 	assert(
 		tier and tier >= 0 and tier <= 6 and tier % 1 == 0,
 		"Invalid parameter: 'tier' must be an integer between 0 and 6."
@@ -140,7 +113,7 @@ local function get_tier_from_parameters(tier, prog_tier)
 		"Invalid parameter: 'prog_tier' must be an integer between 0 and 6."
 	)
 
-	if reskins.lib.settings.get_value("reskins-lib-tier-mapping") == "progression-map" then
+	if _settings.get_value("reskins-framework-tier-mapping") == "progression-map" then
 		return prog_tier or tier
 	end
 
@@ -153,7 +126,7 @@ end
 local function get_tier_from_value(tier_value)
 	assert(tier_value.tier, "Invalid parameter: 'tier' field is a required field on PrototypeTierValue.")
 
-	return get_tier_from_parameters(tier_value.tier, tier_value.prog_tier)
+	return select_tier_for_current_mapping(tier_value.tier, tier_value.prog_tier)
 end
 
 ---
@@ -173,47 +146,8 @@ function _tiers.get_tier(tier, prog_tier)
 	if type(tier) == "table" then
 		return get_tier_from_value(tier)
 	else
-		return get_tier_from_parameters(tier, prog_tier)
+		return select_tier_for_current_mapping(tier, prog_tier)
 	end
-end
-
----
----Gets the color to use for belt-related entities for the given `tier`.
----
----### Returns
----@return data.Color # The color for the given `tier` of belt-related entity.
----
----### Parameters
----@param tier integer # The tier to get a color for; must be between 0 and 6.
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.
-function _tiers.get_belt_tint(tier)
-	assert(
-		tier and tier >= 0 and tier <= 6 and tier % 1 == 0,
-		"Invalid parameter: 'tier' must be an integer between 0 and 6."
-	)
-
-	---@type data.Color
-	local tint
-	if tier == 0 and is_using_basic_belt_override then
-		tint = util.copy(basic_belt_color_override)
-	end
-
-	if is_using_custom_tier_colors then
-		tint = util.copy(custom_tier_colors[tier])
-	elseif is_using_angels_belt_tier_colors then
-		tint = util.copy(angels_tier_colors[tier])
-	else
-		if tier == 2 then
-			-- Use pure red for belt-related entities to better match the vanilla sprites.
-			tint = util.color("#ff0000")
-		else
-			tint = util.copy(standard_tier_colors[tier])
-		end
-	end
-
-	return tint
 end
 
 ---
@@ -223,8 +157,8 @@ end
 ---@return boolean # `true` if `icon_data` is a tier label; otherwise, `false`.
 ---
 ---@param icon_datum data.IconData # An `IconData` object to check for tier labels.
-local function is_icon_tier_labeled(icon_datum)
-	return icon_datum and icon_datum.icon:find("__reskins%-library__%/graphics%/icons%/tiers%/") ~= nil
+local function is_icon_labeled(icon_datum)
+	return icon_datum and icon_datum.icon:find("__reskins%-framework__%/graphics%/icons%/tiers%/") ~= nil
 end
 
 ---
@@ -249,7 +183,7 @@ function _tiers.is_icons_tier_labeled(icon_data)
 	-- A labeled icon will have minimum three layers.
 	if icon_data and #icon_data >= 3 then
 		for i = #icon_data, 1, -1 do
-			if is_icon_tier_labeled(icon_data[i]) then
+			if is_icon_labeled(icon_data[i]) then
 				return true
 			end
 		end
@@ -283,7 +217,7 @@ end
 function _tiers.get_tier_from_icons(icon_data)
 	if icon_data and #icon_data >= 3 then
 		for i = #icon_data, 1, -1 do
-			if is_icon_tier_labeled(icon_data[i]) then
+			if is_icon_labeled(icon_data[i]) then
 				return tonumber(icon_data[i].icon:match("(%d+)%.png"))
 			end
 		end
@@ -321,7 +255,7 @@ function _tiers.remove_tier_labels_from_icons(icon_data)
 
 	if #icon_data >= 2 then
 		for i = #icon_data_copy, 1, -1 do
-			if is_icon_tier_labeled(icon_data_copy[i]) then
+			if is_icon_labeled(icon_data_copy[i]) then
 				table.insert(removed_layers, 1, table.remove(icon_data_copy, i))
 			end
 		end
@@ -359,7 +293,7 @@ end
 ---    },
 ---}
 ---
----local labeled_icon = tiers.tiers.add_tier_labels_to_icons(1, icon_data)
+---local labeled_icon = _tiers.add_tier_labels_to_icons(1, icon_data)
 ---```
 ---
 ---### Parameters
@@ -379,35 +313,25 @@ function _tiers.add_tier_labels_to_icons(tier, icon_data)
 	)
 	assert(icon_data, "Invalid parameter: 'icon_data' must not be nil.")
 
-	if not _tiers.is_tier_labeling_enabled then
+	if not _tiers.show_labels then
 		return util.copy(icon_data)
 	end
 
-	local icon_data_copy = _icons.add_missing_icons_defaults(icon_data)
+	local icon_data_copy = sprite_utils.icons.add_missing_icons_defaults(icon_data, "standard")
 
 	-- There is not a 0th tier pip.
 	if tier > 0 then
-		local labeling_style = _tiers.tier_labeling_style
+		local labeling_style = _tiers.tier_label_style
 		local icon_file_name = "__reskins-framework__/graphics/icons/tiers/" .. labeling_style .. "/" .. tier .. ".png"
 
-		-- Add base layer.
-		table.insert(
-			icon_data_copy,
-			_icons.add_missing_icon_defaults({
-				icon = icon_file_name,
-				icon_size = 64,
-			})
-		)
-
-		-- Add tinted layer.
-		table.insert(
-			icon_data_copy,
-			_icons.add_missing_icon_defaults({
-				icon = icon_file_name,
-				icon_size = 64,
-				tint = util.get_color_with_alpha(reskins.lib.tiers.get_tint(tier), 0.75),
-			})
-		)
+		icon_data_copy = sprite_utils.icons.compose_icons("standard", icon_data, {
+			icon = icon_file_name,
+			icon_size = 64,
+		}, {
+			icon = icon_file_name,
+			icon_size = 64,
+			tint = util.get_color_with_alpha(_tiers.get_tint(tier), 0.75),
+		})
 	end
 
 	return icon_data_copy
@@ -435,7 +359,7 @@ end
 ---    scale = 0.5,
 ---}
 ---
----local labeled_icon = reskins.lib.add_tier_labels_to_icon(1, icon_datum)
+---local labeled_icon = _tiers.add_tier_labels_to_icon(1, icon_datum)
 ---```
 ---
 ---### Parameters
@@ -464,7 +388,7 @@ end
 ---
 ---### Examples
 ---```
----local labeled_icon = reskins.lib.create_icon_with_tier_labels(1, "__base__/graphics/icons/assembling-machine-1.png", 64, 4, 0.5)
+---local labeled_icon = _tiers.create_icon_with_tier_labels(1, "__base__/graphics/icons/assembling-machine-1.png", 64, 4, 0.5)
 ---```
 ---
 ---### Parameters
@@ -481,7 +405,7 @@ end
 ---*@throws* `string` — Thrown when `icon_size` is not a positive integer.<br/>
 ---@nodiscard
 function _tiers.create_icon_with_tier_labels(tier, icon, icon_size, scale, shift, tint)
-	return _tiers.add_tier_labels_to_icon(tier, _icons.create_icon(icon, icon_size, scale, shift, tint))
+	return _tiers.add_tier_labels_to_icon(tier, sprite_utils.icons.create_icon(icon, icon_size, scale, shift, tint))
 end
 
 ---
@@ -489,7 +413,7 @@ end
 ---the resulting data as a `DeferrableIcon` object.
 ---
 ---### Returns
----@return DeferrableIconData|nil # The prototype and icon data packaged as a `DerrableIcon` object enabling deferred assignment. Returns `nil` if `tier = 0` or the icon could not be retrieved from `prototype`.
+---@return DeferrableIconData # The prototype and icon data packaged as a `DeferrableIcon` object enabling deferred assignment.
 ---
 ---### Remarks
 ---- Creates a `Sprite` object for the `pictures` field without tier labels for display in the world.
@@ -499,7 +423,7 @@ end
 ---### Examples
 ---```
 ----- Get a deferrable icon with tier labels for a tier 1 tank.
----local derrable_icon = tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(1, data.raw.car["tank"])
+---local deferrable_icon = tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(1, data.raw.car["tank"])
 ---```
 ---
 ---### Parameters
@@ -518,15 +442,7 @@ function _tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(tier, p
 		"Invalid parameter: 'tier' must be an integer between 0 and 6."
 	)
 
-	-- There is not a 0th tier pip.
-	if tier == 0 then
-		return nil
-	end
-
-	local source_icon_data = _icons.get_icon_from_prototype_by_reference(prototype)
-	if not source_icon_data then
-		return nil
-	end
+	local source_icon_data = sprite_utils.icons.get_icon_from_prototype(prototype)
 
 	-- A list of types that should not have their pictures field set.
 	local filtered_types = {
@@ -542,7 +458,9 @@ function _tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(tier, p
 		name = prototype.name,
 		type_name = prototype.type,
 		icon_data = _tiers.add_tier_labels_to_icons(tier, source_icon_data),
-		pictures = not filtered_types[prototype.type] and _sprites.create_sprite_from_icons(source_icon_data, 1.0) or nil,
+		pictures = not filtered_types[prototype.type]
+				and sprite_utils.icons.create_sprite_from_icons(source_icon_data, 1.0)
+			or nil,
 	}
 
 	return deferrable_icon
@@ -580,7 +498,7 @@ function _tiers.add_tier_labels_to_prototype_by_reference(tier, prototype)
 		return
 	end
 
-	_icons.assign_icons_to_prototype_and_related_prototypes(
+	sprite_utils.icons.assign_icons_to_prototype_and_related_prototypes(
 		deferrable_icon.name,
 		deferrable_icon.type_name,
 		deferrable_icon.icon_data,

@@ -1,6 +1,6 @@
 {
     "name": "reskins-framework",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "factorio_version": "2.0",
     "title": "Artisanal Reskins: Framework",
     "author": "Kirazy",
@@ -8,11 +8,9 @@
     "homepage": "https://github.com/kirazy/reskins-framework",
     "dependencies": [
         "base",
-        "flib",
-        "(?) bobassembly",
-        "(?) boblogistics",
-        "(?) angelspetrochem",
-        "(?) angelsindustries",
-        "! bobmods_gfxtweak"
-    ]
+        "reskins-sprite-utils >= 0.1.0"
+    ],
+    "package": {
+        "git_publish_branch": "main"
+    }
 }
