@@ -64,15 +64,15 @@ local custom_tier_colors = {
 }
 
 ---@type data.Color[]
-local standard_tier_colors = {
+local default_tier_colors = {
 	---@type data.Color
-	[0] = util.color("#808080"), -- 1.1.7: 4d4d4d
-	[1] = util.color("#ffb726"), -- 1.1.7: de9400
-	[2] = util.color("#f22318"), -- 1.1.7: c20600
-	[3] = util.color("#33b4ff"), -- 1.1.7: 0099ff, 1.1.0: 1b87c2
-	[4] = util.color("#b459ff"), -- 1.1.7: a600bf
-	[5] = util.color("#2ee55c"), -- 1.1.7: 16c746, 1.1.6: 23de55
-	[6] = util.color("#ff8533"), -- 1.1.7: ff7700
+	[0] = _settings.get_value("reskins-framework-default-colors-tier-0"),
+	[1] = _settings.get_value("reskins-framework-default-colors-tier-1"),
+	[2] = _settings.get_value("reskins-framework-default-colors-tier-2"),
+	[3] = _settings.get_value("reskins-framework-default-colors-tier-3"),
+	[4] = _settings.get_value("reskins-framework-default-colors-tier-4"),
+	[5] = _settings.get_value("reskins-framework-default-colors-tier-5"),
+	[6] = _settings.get_value("reskins-framework-default-colors-tier-6"),
 }
 
 ---
@@ -95,7 +95,7 @@ function _tiers.get_tint(tier)
 	if is_using_custom_tier_colors then
 		return util.copy(custom_tier_colors[tier])
 	else
-		return util.copy(standard_tier_colors[tier])
+		return util.copy(default_tier_colors[tier])
 	end
 end
 
