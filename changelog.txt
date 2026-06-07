@@ -1,5 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1
+Date: 2026-06-07
   Features:
     - Added hidden `default-colors-tier-#` settings to allow for mods that use the framework to set per-implementation standard tier colors.
   Changes:
