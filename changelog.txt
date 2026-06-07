@@ -5,6 +5,8 @@ Version: 0.1.1
   Changes:
     - Renamed `add_tier_labels_to_prototype_by_reference` to `add_tier_labels_to_prototype`.
     - Renamed `add_tier_labels_to_prototype_by_name` to `add_tier_labels_to_named_prototype`.
+  Bugfixes:
+    - Fixed that `get_deferrable_icon_for_prototype_with_added_tier_labels` would throw due to calling the wrong method.
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2026-06-06

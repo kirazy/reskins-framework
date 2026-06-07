@@ -1,4 +1,7 @@
-local sprite_utils = { icons = require("__reskins-sprite-utils__.icons") }
+local sprite_utils = {
+	icons = require("__reskins-sprite-utils__.icons"),
+	sprites = require("__reskins-sprite-utils__.sprites"),
+}
 local _settings = require("__reskins-framework__.api.settings")
 
 --- Provides methods for working with tier labels and tints.
@@ -459,7 +462,7 @@ function _tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(tier, p
 		type_name = prototype.type,
 		icon_data = _tiers.add_tier_labels_to_icons(tier, source_icon_data),
 		pictures = not filtered_types[prototype.type]
-				and sprite_utils.icons.create_sprite_from_icons(source_icon_data, 1.0)
+				and sprite_utils.sprites.create_sprite_from_icons(source_icon_data, 1.0)
 			or nil,
 	}
 
