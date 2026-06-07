@@ -1,8 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1
-Date: ????
   Features:
     - Added hidden `default-colors-tier-#` settings to allow for mods that use the framework to set per-implementation standard tier colors.
+  Changes:
+    - Renamed `add_tier_labels_to_prototype_by_reference` to `add_tier_labels_to_prototype`.
+    - Renamed `add_tier_labels_to_prototype_by_name` to `add_tier_labels_to_named_prototype`.
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.0
 Date: 2026-06-06

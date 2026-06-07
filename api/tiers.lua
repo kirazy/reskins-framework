@@ -490,7 +490,7 @@ end
 ---*@throws* `string` — Thrown when `prototype` has no defined field `icon_size` at the root, or at the root of the first element in `icons`.<br/>
 ---*@throws* `string` — Thrown when `prototype` has an icon with field `icon` that is not an absolute file path with a valid extension.<br/>
 ---*@throws* `string` — Thrown when `prototype` has an icon with field `icon_size` that is not a positive integer.<br/>
-function _tiers.add_tier_labels_to_prototype_by_reference(tier, prototype)
+function _tiers.add_tier_labels_to_prototype(tier, prototype)
 	local deferrable_icon = _tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(tier, prototype)
 
 	-- Prototype doesn't exist, or tier was 0.
@@ -533,11 +533,11 @@ end
 ---*@throws* `string` — Thrown when the prototype has no defined field `icon` or `icons`.<br/>
 ---*@throws* `string` — Thrown when the prototype icon has an with field `icon` that is not an absolute file path with a valid extension.<br/>
 ---*@throws* `string` — Thrown when the prototype icon has an with field `icon_size` that is not a positive integer.<br/>
-function _tiers.add_tier_labels_to_prototype_by_name(tier, name, type_name)
+function _tiers.add_tier_labels_to_named_prototype(tier, name, type_name)
 	assert(name and name ~= "", "Invalid parameter: 'name' must not be nil or an empty string.")
 	assert(type_name and type_name ~= "", "Invalid parameter: 'type_name' must not be nil or an empty string.")
 
-	_tiers.add_tier_labels_to_prototype_by_reference(tier, data.raw[type_name][name])
+	_tiers.add_tier_labels_to_prototype(tier, data.raw[type_name][name])
 end
 
 return _tiers
