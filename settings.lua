@@ -35,9 +35,16 @@ data:extend({
 	},
 	{
 		type = "bool-setting",
+		name = "reskins-framework-show-tier-labels-in-world",
+		setting_type = "startup",
+		order = "ca",
+		default_value = false,
+	},
+	{
+		type = "bool-setting",
 		name = "reskins-framework-show-tier-labels-on-pipes",
 		setting_type = "startup",
-		order = "cc",
+		order = "cb",
 		default_value = true,
 	},
 	{

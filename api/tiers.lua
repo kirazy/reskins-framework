@@ -29,12 +29,22 @@ local _tiers = {}
 _tiers.show_labels = _settings.get_value("reskins-framework-show-tier-labels") == true
 
 ---
+---Indicates whether tier labels should added to item-on-ground icons or not.
+---
+---### Value
+---`true` if tier labels should be added to item-on-ground icons; otherwise, `false`.
+---@type boolean
+_tiers.show_labels_in_world = _tiers.show_labels
+	and _settings.get_value("reskins-framework-show-tier-labels-in-world") == true
+
+---
 ---Indicates whether tier labels should be added to pipe-type entity icons or not.
 ---
 ---### Value
 ---`true` if tier labels should be added to pipe-type entity icons; otherwise, `false`.
 ---@type boolean
-_tiers.show_labels_on_pipes = _settings.get_value("reskins-framework-show-tier-labels-on-pipes") == true
+_tiers.show_labels_on_pipes = _tiers.show_labels
+	and _settings.get_value("reskins-framework-show-tier-labels-on-pipes") == true
 
 ---@alias TierLabelStyle
 ---| "chevron" Chevrons.
@@ -52,6 +62,10 @@ _tiers.show_labels_on_pipes = _settings.get_value("reskins-framework-show-tier-l
 ---The current style of tier labels to use.
 ---@type TierLabelStyle
 _tiers.tier_label_style = _settings.get_value("reskins-framework-tier-label-style")
+
+---
+---When `true`, tier labels should use progression mapping where applicable.
+_tiers.use_progression = _settings.get_value("reskins-framework-tier-mapping") == "progression-map"
 
 ---
 ---Defines values for a given prototype's tier for either traditional or progression tier mapping.
@@ -83,6 +97,19 @@ local default_tier_colors = {
 	[6] = _settings.get_value("reskins-framework-default-colors-tier-6") --[[@as Color]],
 }
 
+---@param tier unknown
+---@param param_name string
+---@return Tier
+local function get_safe_tier(tier, param_name)
+	assert(type(tier) == "number", "Invalid type: " .. param_name .. " must be number, but was " .. type(tier) .. ".")
+	assert(
+		tier >= 0 and tier <= 6 and tier % 1 == 0,
+		"Invalid value: " .. param_name .. " must be an integer between 0 and 6, but was " .. tier .. "."
+	)
+
+	return tier --[[@as Tier]]
+end
+
 ---
 ---Gets the color for the given `tier`.
 ---
@@ -95,15 +122,12 @@ local default_tier_colors = {
 ---### Exceptions
 ---*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.
 function _tiers.get_tint(tier)
-	assert(
-		tier and tier >= 0 and tier <= 6 and tier % 1 == 0,
-		"Invalid parameter: 'tier' must be an integer between 0 and 6."
-	)
+	local safe_tier = get_safe_tier(tier, "tier")
 
 	if is_using_custom_tier_colors then
-		return util.copy(custom_tier_colors[tier])
+		return util.copy(custom_tier_colors[safe_tier])
 	else
-		return util.copy(default_tier_colors[tier])
+		return util.copy(default_tier_colors[safe_tier])
 	end
 end
 
@@ -112,29 +136,10 @@ end
 ---@param prog_tier? Tier # The progression tier to get a color for; must be between 0 and 6.
 ---@return Tier # The tier appropriate for the current settings.
 local function select_tier_for_current_mapping(tier, prog_tier)
-	assert(
-		tier and tier >= 0 and tier <= 6 and tier % 1 == 0,
-		"Invalid parameter: 'tier' must be an integer between 0 and 6."
-	)
-	assert(
-		not prog_tier or (prog_tier and prog_tier >= 0 and prog_tier <= 6 and prog_tier % 1 == 0),
-		"Invalid parameter: 'prog_tier' must be an integer between 0 and 6."
-	)
+	local safe_tier = get_safe_tier(tier, "tier")
+	local safe_prog_tier = prog_tier ~= nil and get_safe_tier(prog_tier, "prog_tier") or nil
 
-	if _settings.get_value("reskins-framework-tier-mapping") == "progression-map" then
-		return prog_tier or tier
-	end
-
-	return tier
-end
-
----Gets the tier from the given `tier_value` appropriate for the current settings.
----@param tier_value PrototypeTierValue
----@return integer # The tier appropriate for the current settings.
-local function get_tier_from_value(tier_value)
-	assert(tier_value.tier, "Invalid parameter: 'tier' field is a required field on PrototypeTierValue.")
-
-	return select_tier_for_current_mapping(tier_value.tier, tier_value.prog_tier)
+	return _tiers.use_progression and safe_prog_tier or safe_tier
 end
 
 ---
@@ -153,12 +158,11 @@ end
 ---@nodiscard
 function _tiers.get_tier(tier, prog_tier)
 	if type(tier) == "table" then
-		return get_tier_from_value(tier)
+		return select_tier_for_current_mapping(tier.tier, tier.prog_tier)
 	else
 		return select_tier_for_current_mapping(tier, prog_tier)
 	end
 end
-
 
 ---@param icon_datum IconData
 ---@return boolean
@@ -315,10 +319,7 @@ end
 ---*@throws* `string` — Thrown when `icon_data[n].icon_size` is not a positive integer.
 ---@nodiscard
 function _tiers.add_tier_labels_to_icons(tier, icon_data)
-	assert(
-		tier and tier >= 0 and tier <= 6 and tier % 1 == 0,
-		"Invalid parameter: 'tier' must be an integer between 0 and 6."
-	)
+	local safe_tier = get_safe_tier(tier, "tier")
 	assert(icon_data, "Invalid parameter: 'icon_data' must not be nil.")
 
 	if not _tiers.show_labels then
@@ -330,7 +331,7 @@ function _tiers.add_tier_labels_to_icons(tier, icon_data)
 	-- There is not a 0th tier pip.
 	if tier > 0 then
 		local labeling_style = _tiers.tier_label_style
-		local icon_file_name = "__reskins-framework__/graphics/icons/tiers/" .. labeling_style .. "/" .. tier .. ".png"
+		local icon_file_name = "__reskins-framework__/graphics/icons/tiers/" .. labeling_style .. "/" .. safe_tier .. ".png"
 
 		icon_data_copy = sprite_utils.icons.compose_icons("standard", icon_data, {
 			icon = icon_file_name,
@@ -417,62 +418,69 @@ function _tiers.create_icon_with_tier_labels(tier, icon, icon_size, scale, shift
 	return _tiers.add_tier_labels_to_icon(tier, sprite_utils.icons.create_icon(icon, icon_size, scale, shift, tint))
 end
 
----
----Adds tier labels for the given `tier` to the icon of the given `prototype`, and packages
----the resulting data as a `DeferrableIcon` object.
----
----### Returns
----@return DeferrableIconData # The prototype and icon data packaged as a `DeferrableIcon` object enabling deferred assignment.
----
----### Remarks
----- Creates a `Sprite` object for the `pictures` field without tier labels for display in the world.
----- Missing icon fields are set to default values as appropriate.
----- `prototype` is not modified.
----
----### Examples
----```
------ Get a deferrable icon with tier labels for a tier 1 tank.
----local deferrable_icon = tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(1, data.raw.car["tank"])
----```
----
----### Parameters
----@param tier integer # The tier of the added labels.
----@param prototype data.EntityPrototype|data.ItemPrototype|data.RecipePrototype # The prototype to add tier labels to.
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.<br/>
----*@throws* `string` — Thrown when `prototype` has no defined field `icon` or `icons`.<br/>
----*@throws* `string` — Thrown when `prototype` has no defined field `icon_size` at the root, or at the root of the first element in `icons`.<br/>
----*@throws* `string` — Thrown when `prototype` has an icon with field `icon` that is not an absolute file path with a valid extension.<br/>
----*@throws* `string` — Thrown when `prototype` has an icon with field `icon_size` that is not a positive integer.<br/>
-function _tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(tier, prototype)
-	assert(
-		tier and tier >= 0 and tier <= 6 and tier % 1 == 0,
-		"Invalid parameter: 'tier' must be an integer between 0 and 6."
-	)
+---@class DeferrableIconWithTierLabelParams
+---@field tier Tier
+---@field name string
+---@field type_name string
+---@field icon_datum? IconData
+---@field icon_data? IconData[]
 
-	local source_icon_data = sprite_utils.icons.get_icon_from_prototype(prototype)
+local hide_tier_label_for_type = {
+	["pipe"] = not _tiers.show_labels_on_pipes,
+	["pipe-to-ground"] = not _tiers.show_labels_on_pipes,
+}
 
-	-- A list of types that should not have their pictures field set.
-	local filtered_types = {
-		["corpse"] = true, -- Not a droppable prototype.
-		["explosion"] = true, -- Not a droppable prototype.
-		["item-with-entity-data"] = true, -- pictures field is non-functional on this type.
-		["recipe"] = true, -- Not a droppable prototype.
-		["technology"] = true, -- Not a droppable prototype.
-	}
+---Adds tier labels to the icon contained in the specified `deferrable_icon`, setting the
+---`deferrable_icon.pictures` field to a sprite created from the unmodified
+---`deferrable_icon.icon_data`.
+---
+---This method is used to add tier labels to an icon such that, when assigned to a prototype using
+---`assign_icons_to_prototype_and_related_prototypes`, the item-on-ground will not include the tier
+---labels.
+---
+---@overload fun(params: DeferrableIconWithTierLabelParams): DeferrableIconData
+---@overload fun(tier: Tier, name: string, type_name: string, icon_datum: IconData): DeferrableIconData
+---@overload fun(tier: Tier, name: string, type_name: string, icon_data: IconData[]): DeferrableIconData
+---@param paramsOrTier Tier|DeferrableIconWithTierLabelParams
+---@param name? string The name of the prototype to be assigned this icon.
+---@param type_name? string The type name of the prototype to be assigned this icon.
+---@param icon? IconData|IconData[] The icon data to store for deferred assignment.
+---@return DeferrableIconData
+---@nodiscard
+function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, icon)
+	if type(paramsOrTier) == "number" then
+		local tier = get_safe_tier(paramsOrTier, "tier")
+		assert(name ~= nil, "Invalid parameter: 'name' must not be nil.")
+		assert(type(name) == "string", "Invalid parameter: type of 'name' must be string, but was " .. type(name) .. ".")
+		assert(type_name ~= nil, "Invalid parameter: 'type_name' must not be nil.")
+		assert(
+			type(type_name) == "string",
+			"Invalid parameter: type of 'type_name' must be string, but was " .. type(type_name) .. "."
+		)
+		assert(icon ~= nil, "Invalid parameter: 'icon_data' must not be nil.")
+		assert(type(icon) == "table", "Invalid parameter: type of 'icon_data' must be table, but was " .. type(icon) .. ".")
 
-	---@type DeferrableIconData
-	local deferrable_icon = {
-		name = prototype.name,
-		type_name = prototype.type,
-		icon_data = _tiers.add_tier_labels_to_icons(tier, source_icon_data),
-		pictures = not filtered_types[prototype.type]
-				and sprite_utils.sprites.create_sprite_from_icons(source_icon_data, 1.0)
-			or nil,
-	}
+		local icon_data = icon.icon ~= nil and { icon } or icon
+		local show_labels = _tiers.show_labels and not hide_tier_label_for_type[type_name]
+		local hide_labels_in_world = _tiers.show_labels_in_world ~= true
 
-	return deferrable_icon
+		---@cast icon_data IconData[]
+		return {
+			name = name,
+			type_name = type_name,
+			icon_data = show_labels and _tiers.add_tier_labels_to_icons(tier, icon_data) or icon_data,
+			pictures = hide_labels_in_world and sprite_utils.sprites.create_sprite_from_icons(icon_data) --[[@as SpriteSheet]] or nil,
+		}
+	else
+		local params = paramsOrTier
+		assert(
+			type(params) == "table",
+			"Invalid parameter: type of 'params' must be table, but was " .. type(params) .. "."
+		)
+
+		local icon_data = params.icon_data or { params.icon_datum }
+		return _tiers.deferrable_icon_with_tier_labels(params.tier, params.name, params.type_name, icon_data)
+	end
 end
 
 ---
@@ -497,19 +505,14 @@ end
 ---*@throws* `string` — Thrown when `prototype` has an icon with field `icon` that is not an absolute file path with a valid extension.\
 ---*@throws* `string` — Thrown when `prototype` has an icon with field `icon_size` that is not a positive integer.
 function _tiers.add_tier_labels_to_prototype(tier, prototype)
-	local deferrable_icon = _tiers.get_deferrable_icon_for_prototype_with_added_tier_labels(tier, prototype)
+	local deferrable_icon = _tiers.deferrable_icon_with_tier_labels({
+		tier = tier,
+		name = prototype.name,
+		type_name = prototype.type,
+		icon_data = sprite_utils.icons.get_icon_from_prototype(prototype),
+	})
 
-	-- Prototype doesn't exist, or tier was 0.
-	if not deferrable_icon then
-		return
-	end
-
-	sprite_utils.icons.assign_icons_to_prototype_and_related_prototypes(
-		deferrable_icon.name,
-		deferrable_icon.type_name,
-		deferrable_icon.icon_data,
-		deferrable_icon.pictures
-	)
+	sprite_utils.icons.assign_deferrable_icon(deferrable_icon)
 end
 
 ---

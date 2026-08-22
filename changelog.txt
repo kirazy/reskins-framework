@@ -1,6 +1,12 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.2
 Date: ????
+  Features:
+    - Added new setting "Show tier labels in world", default off, to permit showing tier labels in the world.
+    - Added `deferrable_icon_with_tier_labels`, which now is the preferred way to get an icon with tier labels based on the current user settings. 
+      - Where the user does/does not want tier labels visible, the settings are automatically respected and the resulting deferrable icon is correctly configured and ready for assignment.
+  Breaking Changes:
+    - Removed `get_deferrable_icon_for_prototype_with_added_tier_labels`, use `deferrable_icon_with_tier_labels` instead and assign the result.
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 2026-06-07
