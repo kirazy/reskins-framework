@@ -1,7 +1,7 @@
 {
 	"name": "reskins-framework",
-	"version": "0.2.0",
-	"factorio_version": "2.1",
+	"version": "0.1.2",
+	"factorio_version": "2.0",
 	"title": "Artisanal Reskins: Framework",
 	"author": "Kirazy",
 	"contact": "https://discord.gg/qAvSyzZFPr",
@@ -11,6 +11,6 @@
 		"reskins-sprite-utils"
 	],
 	"package": {
-		"git_publish_branch": "dev2.1"
+		"git_publish_branch": "dev2.0"
 	}
 }
