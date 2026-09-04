@@ -22,26 +22,17 @@ local _tiers = {}
 
 ---
 ---Indicates whether tier labels should be added to icons or not.
----
----### Value
----`true` if tier labels should be added to icons; otherwise, `false`.
 ---@type boolean
 _tiers.show_labels = _settings.get_value("reskins-framework-show-tier-labels") == true
 
 ---
 ---Indicates whether tier labels should added to item-on-ground icons or not.
----
----### Value
----`true` if tier labels should be added to item-on-ground icons; otherwise, `false`.
 ---@type boolean
 _tiers.show_labels_in_world = _tiers.show_labels
 	and _settings.get_value("reskins-framework-show-tier-labels-in-world") == true
 
 ---
 ---Indicates whether tier labels should be added to pipe-type entity icons or not.
----
----### Value
----`true` if tier labels should be added to pipe-type entity icons; otherwise, `false`.
 ---@type boolean
 _tiers.show_labels_on_pipes = _tiers.show_labels
 	and _settings.get_value("reskins-framework-show-tier-labels-on-pipes") == true
@@ -57,9 +48,6 @@ _tiers.show_labels_on_pipes = _tiers.show_labels
 
 ---
 ---Gets the current style of tier labels to use.
----
----### Value
----The current style of tier labels to use.
 ---@type TierLabelStyle
 _tiers.tier_label_style = _settings.get_value("reskins-framework-tier-label-style")
 
@@ -112,15 +100,9 @@ end
 
 ---
 ---Gets the color for the given `tier`.
----
----### Returns
+---@param tier Tier The tier to get a color for; must be between 0 and 6.
 ---@return Color # The color for the given `tier`.
----
----### Parameters
----@param tier Tier # The tier to get a color for; must be between 0 and 6.
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.
+---@throws Thrown when `tier` is not an integer between 0 and 6.
 function _tiers.get_tint(tier)
 	local safe_tier = get_safe_tier(tier, "tier")
 
@@ -132,8 +114,8 @@ function _tiers.get_tint(tier)
 end
 
 ---Gets the tier for the given `tier` and `prog_tier`.
----@param tier Tier # The tier to get a color for; must be between 0 and 6.
----@param prog_tier? Tier # The progression tier to get a color for; must be between 0 and 6.
+---@param tier Tier The tier to get a color for; must be between 0 and 6.
+---@param prog_tier? Tier The progression tier to get a color for; must be between 0 and 6.
 ---@return Tier # The tier appropriate for the current settings.
 local function select_tier_for_current_mapping(tier, prog_tier)
 	local safe_tier = get_safe_tier(tier, "tier")
@@ -145,16 +127,14 @@ end
 ---
 ---Gets the tier appropriate for the current settings, for the provided `tier` and `prog_tier`.
 ---
----### Parameters
----@param tier Tier|PrototypeTierValue # The tier to get a color for; must be between 0 and 6, or a `PrototypeTierValue` object.
----@param prog_tier? Tier # The progression tier to get a color for; must be between 0 and 6. Ignored if `tier` is a `PrototypeTierValue`.
+---#### Parameters
+---@param tier Tier|PrototypeTierValue The tier to get a color for; must be between 0 and 6, or a `PrototypeTierValue` object.
+---@param prog_tier? Tier The progression tier to get a color for; must be between 0 and 6. Ignored if `tier` is a `PrototypeTierValue`.
 ---
----### Returns
+---#### Returns
 ---@return Tier # The tier appropriate for the current settings.
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is a `PrototypeTierValue` object and does not have a `tier` field.\
----*@throws* `string` — Thrown when either of `tier` or `prog_tier` is not an integer between 0 and 6.
+---@throws Thrown when `tier` is a `PrototypeTierValue` object and does not have a `tier` field.
+---@throws Thrown when either of `tier` or `prog_tier` is not an integer between 0 and 6.
 ---@nodiscard
 function _tiers.get_tier(tier, prog_tier)
 	if type(tier) == "table" then
@@ -173,14 +153,10 @@ end
 
 ---
 ---Indicates if the given `icon_data` is tier labeled.
----
----### Parameters
----@param icon_data IconData[] # An array of `IconData` objects.
----
----### Returns
+---@param icon_data IconData[] An array of `IconData` objects.
 ---@return boolean # `true` if `icons` is tier labeled; otherwise `false`.
 ---
----### Examples
+---#### Examples
 ---```lua
 ----- Check if the assembling machine 3 icon is tier labeled, and perform a task if so.
 ---local icon_data = data.raw["assembling-machine"]["assembling-machine-3"].icons
@@ -208,13 +184,13 @@ end
 ---
 ---`icon_data` is not modified.
 ---
----### Parameters
----@param icon_data IconData[] # An array of `IconData` objects.
+---#### Parameters
+---@param icon_data IconData[] An array of `IconData` objects.
 ---
----### Returns
+---#### Returns
 ---@return Tier|nil # The tier of the tier label, or `nil` if `icon_data` is not tier labeled.
 ---
----### Examples
+---#### Examples
 ---```lua
 ----- Get the current tier of the assembling-machine-3.
 ---local icon_data = data.raw["assembling-machine"]["assembling-machine-3"].icons
@@ -240,14 +216,14 @@ end
 ---
 ---Removes any tier labels from a copy of the given `icon_data`.
 ---
----### Parameters
----@param icon_data IconData[] # An array of `IconData` objects.
+---#### Parameters
+---@param icon_data IconData[] An array of `IconData` objects.
 ---
----### Returns
+---#### Returns
 ---@return IconData[] icon_data A copy of `icon_data` without any tier labels.
 ---@return IconData[] tier_labels A copy of the removed tier labels.
 ---
----### Examples
+---#### Examples
 ---```lua
 ----- Remove the tier labels from the assembling-machine-3.
 ---local icon_data = data.raw["assembling-machine"]["assembling-machine-3"].icons
@@ -279,20 +255,19 @@ end
 ---
 ---Adds tier labels representing the given `tier` to a copy of the given `icon_data`.
 ---
----### Remarks
 ---- If tier labeling is disabled, an unmodified copy of `icon_data` is returned.
 ---- Missing icon fields are set to default values as appropriate.
 ---- `icon_data` is assumed to be an entity, item, fluid, or recipe icon. Technology icons are not supported.
 ---- `icon_data` is not modified.
 ---
----### Parameters
----@param tier integer # The tier of the added labels. An integer value from 0 to 6.
----@param icon_data IconData[] # An icon represented by an array of `IconData` objects to add tier labels to.
+---#### Parameters
+---@param tier Tier The tier of the added labels. An integer value from 0 to 6.
+---@param icon_data IconData[] An icon represented by an array of `IconData` objects to add tier labels to.
 ---
----### Returns
+---#### Returns
 ---@return IconData[] # An array of `IconData` objects representing a copy of `icon_data` with added tier labels.
 ---
----### Examples
+---#### Examples
 ---```lua
 ------@type IconData[]
 ---local icon_data = {
@@ -311,12 +286,10 @@ end
 ---
 ---local labeled_icon = _tiers.add_tier_labels_to_icons(1, icon_data)
 ---```
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.\
----*@throws* `string` — Thrown when `icon_data` is `nil`.\
----*@throws* `string` — Thrown when `icon_data[n].icon` is not an absolute file path with a valid extension.\
----*@throws* `string` — Thrown when `icon_data[n].icon_size` is not a positive integer.
+---@throws Thrown when `tier` is not an integer between 0 and 6.
+---@throws Thrown when `icon_data` is `nil`.
+---@throws Thrown when `icon_data[n].icon` is not an absolute file path with a valid extension.
+---@throws Thrown when `icon_data[n].icon_size` is not a positive integer.
 ---@nodiscard
 function _tiers.add_tier_labels_to_icons(tier, icon_data)
 	local safe_tier = get_safe_tier(tier, "tier")
@@ -350,21 +323,20 @@ end
 ---
 ---Adds tier labels representing the given `tier` to a copy of the given `icon_datum`.
 ---
----### Remarks
 ---- If tier labeling is disabled, an unmodified copy of `icon_datum` is returned, packaged as an
 ---  array of `IconData` objects with one element.
 ---- Missing icon fields are set to default values as appropriate.
 ---- `icon_datum` is assumed to be an entity, item, fluid, or recipe icon. Technology icons are not supported.<br>
 ---- `icon_datum` is not modified.
 ---
----### Parameters
----@param tier integer # The tier of the added labels.
----@param icon_datum IconData # An icon represented by an `IconData` object to add tier labels to.
+---#### Parameters
+---@param tier integer The tier of the added labels.
+---@param icon_datum IconData An icon represented by an `IconData` object to add tier labels to.
 ---
----### Returns
+---#### Returns
 ---@return IconData[] # An array of `IconData` objects representing a copy of `icon_datum` with added tier labels.
 ---
----### Examples
+---#### Examples
 ---```lua
 ------@type IconData
 ---local icon_datum = {
@@ -375,12 +347,10 @@ end
 ---
 ---local labeled_icon = _tiers.add_tier_labels_to_icon(1, icon_datum)
 ---```
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.\
----*@throws* `string` — Thrown when `icon_datum` is `nil`.\
----*@throws* `string` — Thrown when `icon_datum.icon` is not an absolute file path with a valid extension.\
----*@throws* `string` — Thrown when `icon_datum.icon_size` is not a positive integer.
+---@throws Thrown when `tier` is not an integer between 0 and 6.
+---@throws Thrown when `icon_datum` is `nil`.
+---@throws Thrown when `icon_datum.icon` is not an absolute file path with a valid extension.
+---@throws Thrown when `icon_datum.icon_size` is not a positive integer.
 ---@nodiscard
 function _tiers.add_tier_labels_to_icon(tier, icon_datum)
 	return _tiers.add_tier_labels_to_icons(tier, { icon_datum })
@@ -389,30 +359,27 @@ end
 ---
 ---Adds tier labels representing the given `tier` to an icon created from the given parameters.
 ---
----### Remarks
 ---- The parameters are assumed to be for an entity, item, fluid, or recipe icon. Technology icons are not supported.
 ---- Missing icon fields are set to default values as appropriate.
 ---
----### Parameters
----@param tier integer # The tier of the added labels.
----@param icon FileName # The file name of the icon to use.
----@param icon_size SpriteSizeType # The size of the icon.
----@param scale? double # The scale of the icon. Default `32 / icon_size`.
----@param shift? Vector # The shift of the icon. Default `nil`.
----@param tint? Color # The tint of the icon. Default `nil`.
+---#### Parameters
+---@param tier integer The tier of the added labels.
+---@param icon FileName The file name of the icon to use.
+---@param icon_size SpriteSizeType The size of the icon.
+---@param scale? double The scale of the icon. Default `32 / icon_size`.
+---@param shift? Vector The shift of the icon. Default `nil`.
+---@param tint? Color The tint of the icon. Default `nil`.
 ---
----### Returns
+---#### Returns
 ---@return IconData[] # An array of `IconData` objects representing the created icon with added tier labels.
 ---
----### Examples
+---#### Examples
 ---```
 ---local labeled_icon = _tiers.create_icon_with_tier_labels(1, "__base__/graphics/icons/assembling-machine-1.png", 64, 4, 0.5)
 ---```
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.\
----*@throws* `string` — Thrown when `icon` is not an absolute file path with a valid extension.\
----*@throws* `string` — Thrown when `icon_size` is not a positive integer.
+---@throws Thrown when `tier` is not an integer between 0 and 6.
+---@throws Thrown when `icon` is not an absolute file path with a valid extension.
+---@throws Thrown when `icon_size` is not a positive integer.
 ---@nodiscard
 function _tiers.create_icon_with_tier_labels(tier, icon, icon_size, scale, shift, tint)
 	return _tiers.add_tier_labels_to_icon(tier, sprite_utils.icons.create_icon(icon, icon_size, scale, shift, tint))
@@ -438,14 +405,15 @@ local hide_tier_label_for_type = {
 ---`assign_icons_to_prototype_and_related_prototypes`, the item-on-ground will not include the tier
 ---labels.
 ---
----@overload fun(params: DeferrableIconWithTierLabelParams): DeferrableIconData
----@overload fun(tier: Tier, name: string, type_name: string, icon_datum: IconData): DeferrableIconData
----@overload fun(tier: Tier, name: string, type_name: string, icon_data: IconData[]): DeferrableIconData
+---#### Parameters
 ---@param paramsOrTier Tier|DeferrableIconWithTierLabelParams
 ---@param name? string The name of the prototype to be assigned this icon.
 ---@param type_name? string The type name of the prototype to be assigned this icon.
 ---@param icon? IconData|IconData[] The icon data to store for deferred assignment.
 ---@return DeferrableIconData
+---@overload fun(params: DeferrableIconWithTierLabelParams): DeferrableIconData
+---@overload fun(tier: Tier, name: string, type_name: string, icon_datum: IconData): DeferrableIconData
+---@overload fun(tier: Tier, name: string, type_name: string, icon_data: IconData[]): DeferrableIconData
 ---@nodiscard
 function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, icon)
 	if type(paramsOrTier) == "number" then
@@ -488,22 +456,18 @@ end
 ---that follow standard naming conventions, such as item, explosion and remnant prototypes.
 ---
 ---Missing icon fields are set to default values as appropriate.
+---@param tier integer The tier of the added labels.
+---@param prototype PrototypeWithIcons The prototype to add tier labels to.
 ---
----### Examples
+---#### Examples
 ---```lua
 ----- Add tier labels to the tank prototype and related prototypes.
 ---tiers.add_tier_labels_to_prototype_by_reference(1, data.raw.car["tank"])
 ---```
----
----### Parameters
----@param tier integer # The tier of the added labels.
----@param prototype PrototypeWithIcons # The prototype to add tier labels to.
----
----### Exceptions
----*@throws* `string` — Thrown when `tier` is not an integer between `0` and `6`.\
----*@throws* `string` — Thrown when `prototype` has no defined field `icon` or `icons`.\
----*@throws* `string` — Thrown when `prototype` has an icon with field `icon` that is not an absolute file path with a valid extension.\
----*@throws* `string` — Thrown when `prototype` has an icon with field `icon_size` that is not a positive integer.
+---@throws Thrown when `tier` is not an integer between `0` and `6`.
+---@throws Thrown when `prototype` has no defined field `icon` or `icons`.
+---@throws Thrown when `prototype` has an icon with field `icon` that is not an absolute file path with a valid extension.
+---@throws Thrown when `prototype` has an icon with field `icon_size` that is not a positive integer.
 function _tiers.add_tier_labels_to_prototype(tier, prototype)
 	local deferrable_icon = _tiers.deferrable_icon_with_tier_labels({
 		tier = tier,
@@ -520,28 +484,25 @@ end
 ---`type_name` and related prototypes that follow standard naming conventions, such as item,
 ---explosion and remnant prototypes.
 ---
----### Remarks
 ---- If `tier` is `0` or the prototype does not exist, no action is taken.
 ---- Missing icon fields are set to default values as appropriate.
 ---
----### Parameters
----@param tier Tier # The tier of the added labels.
----@param name string # The name of the prototype to add tier labels to.
----@param type_name string # The type name of the prototype to add tier labels to.
+---#### Parameters
+---@param tier Tier The tier of the added labels.
+---@param name string The name of the prototype to add tier labels to.
+---@param type_name string The type name of the prototype to add tier labels to.
 ---
----### Examples
+---#### Examples
 ---```lua
 ----- Add tier labels to the tank prototype and related prototypes.
 ---tiers.add_tier_labels_to_prototype_by_name(1, "tank", "car")
 ---```
----
----### Exceptions
----*@throws* `string` — Thrown when `name` is `nil` or an empty string.\
----*@throws* `string` — Thrown when `type_name` is `nil` or an empty string.\
----*@throws* `string` — Thrown when `tier` is not an integer between 0 and 6.\
----*@throws* `string` — Thrown when the prototype has no defined field `icon` or `icons`.\
----*@throws* `string` — Thrown when the prototype icon has an with field `icon` that is not an absolute file path with a valid extension.\
----*@throws* `string` — Thrown when the prototype icon has an with field `icon_size` that is not a positive integer.
+---@throws Thrown when `name` is `nil` or an empty string.
+---@throws Thrown when `type_name` is `nil` or an empty string.
+---@throws Thrown when `tier` is not an integer between 0 and 6.
+---@throws Thrown when the prototype has no defined field `icon` or `icons`.
+---@throws Thrown when the prototype icon has an with field `icon` that is not an absolute file path with a valid extension.
+---@throws Thrown when the prototype icon has an with field `icon_size` that is not a positive integer.
 function _tiers.add_tier_labels_to_named_prototype(tier, name, type_name)
 	assert(name and name ~= "", "Invalid parameter: 'name' must not be nil or an empty string.")
 	assert(type_name and type_name ~= "", "Invalid parameter: 'type_name' must not be nil or an empty string.")
