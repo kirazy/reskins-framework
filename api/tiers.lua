@@ -391,6 +391,7 @@ end
 ---@field type_name string
 ---@field icon_datum? IconData
 ---@field icon_data? IconData[]
+---@field options? IconAssignmentOptions
 
 local hide_tier_label_for_type = {
 	["pipe"] = not _tiers.show_labels_on_pipes,
@@ -410,12 +411,13 @@ local hide_tier_label_for_type = {
 ---@param name? string The name of the prototype to be assigned this icon.
 ---@param type_name? string The type name of the prototype to be assigned this icon.
 ---@param icon? IconData|IconData[] The icon data to store for deferred assignment.
+---@param options? IconAssignmentOptions Controls which related prototypes the icon cascades to, once assigned.
 ---@return DeferrableIconData
 ---@overload fun(params: DeferrableIconWithTierLabelParams): DeferrableIconData
----@overload fun(tier: Tier, name: string, type_name: string, icon_datum: IconData): DeferrableIconData
----@overload fun(tier: Tier, name: string, type_name: string, icon_data: IconData[]): DeferrableIconData
+---@overload fun(tier: Tier, name: string, type_name: string, icon_datum: IconData, options?: IconAssignmentOptions): DeferrableIconData
+---@overload fun(tier: Tier, name: string, type_name: string, icon_data: IconData[], options?: IconAssignmentOptions): DeferrableIconData
 ---@nodiscard
-function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, icon)
+function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, icon, options)
 	if type(paramsOrTier) == "number" then
 		local tier = get_safe_tier(paramsOrTier, "tier")
 		assert(name ~= nil, "Invalid parameter: 'name' must not be nil.")
@@ -438,6 +440,7 @@ function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, 
 			type_name = type_name,
 			icon_data = show_labels and _tiers.add_tier_labels_to_icons(tier, icon_data) or icon_data,
 			pictures = hide_labels_in_world and sprite_utils.sprites.create_sprite_from_icons(icon_data) --[[@as SpriteSheet]] or nil,
+			options = options,
 		}
 	else
 		local params = paramsOrTier
@@ -447,7 +450,13 @@ function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, 
 		)
 
 		local icon_data = params.icon_data or { params.icon_datum }
-		return _tiers.deferrable_icon_with_tier_labels(params.tier, params.name, params.type_name, icon_data)
+		return _tiers.deferrable_icon_with_tier_labels(
+			params.tier,
+			params.name,
+			params.type_name,
+			icon_data,
+			params.options
+		)
 	end
 end
 
