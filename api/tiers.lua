@@ -1,19 +1,25 @@
 ---@using data
 ---@using Reskins.SpriteUtils
+---@using Reskins.SpriteUtils.Validation
 
 ---@namespace Reskins.Framework
 
-local sprite_utils = {
+local _sprite_utils = {
 	icons = require("__reskins-sprite-utils__.icons"),
 	sprites = require("__reskins-sprite-utils__.sprites"),
 }
+local IconComposition = require("__reskins-sprite-utils__.icon-composition")
 local _settings = require("__reskins-framework__.api.settings")
+
+local V = require("__reskins-sprite-utils__.validation")
+local Common = require("__reskins-sprite-utils__.validation.common")
+local FrameworkCommon = require("__reskins-framework__.api.validation")
 
 ---@alias Tier 0|1|2|3|4|5|6
 
 --- Provides methods for working with tier labels and tints.
 ---
----### Examples
+---#### Examples
 ---```lua
 ---local _tiers = require("__reskins-framework__.api.tiers")
 ---```
@@ -22,18 +28,15 @@ local _tiers = {}
 
 ---
 ---Indicates whether tier labels should be added to icons or not.
----@type boolean
 _tiers.show_labels = _settings.get_value("reskins-framework-show-tier-labels") == true
 
 ---
 ---Indicates whether tier labels should added to item-on-ground icons or not.
----@type boolean
 _tiers.show_labels_in_world = _tiers.show_labels
 	and _settings.get_value("reskins-framework-show-tier-labels-in-world") == true
 
 ---
 ---Indicates whether tier labels should be added to pipe-type entity icons or not.
----@type boolean
 _tiers.show_labels_on_pipes = _tiers.show_labels
 	and _settings.get_value("reskins-framework-show-tier-labels-on-pipes") == true
 
@@ -58,8 +61,10 @@ _tiers.use_progression = _settings.get_value("reskins-framework-tier-mapping") =
 ---
 ---Defines values for a given prototype's tier for either traditional or progression tier mapping.
 ---@class PrototypeTierValue
----@field tier integer # The traditional tier of the prototype.
----@field prog_tier integer? # The progression tier of the prototype.
+---The traditional tier of the prototype.
+---@field tier integer
+---The progression tier of the prototype.
+---@field prog_tier integer?
 
 local is_using_custom_tier_colors = _settings.get_value("reskins-framework-use-custom-tier-colors") == true
 
@@ -85,18 +90,9 @@ local default_tier_colors = {
 	[6] = _settings.get_value("reskins-framework-default-colors-tier-6") --[[@as Color]],
 }
 
----@param tier unknown
----@param param_name string
----@return Tier
-local function get_safe_tier(tier, param_name)
-	assert(type(tier) == "number", "Invalid type: " .. param_name .. " must be number, but was " .. type(tier) .. ".")
-	assert(
-		tier >= 0 and tier <= 6 and tier % 1 == 0,
-		"Invalid value: " .. param_name .. " must be an integer between 0 and 6, but was " .. tier .. "."
-	)
-
-	return tier --[[@as Tier]]
-end
+local check_get_tint = V.signature("get_tint", {
+	{ "tier", FrameworkCommon.tier },
+})
 
 ---
 ---Gets the color for the given `tier`.
@@ -104,32 +100,43 @@ end
 ---@return Color # The color for the given `tier`.
 ---@throws Thrown when `tier` is not an integer between 0 and 6.
 function _tiers.get_tint(tier)
-	local safe_tier = get_safe_tier(tier, "tier")
+	check_get_tint(tier)
 
 	if is_using_custom_tier_colors then
-		return util.copy(custom_tier_colors[safe_tier])
+		return util.copy(custom_tier_colors[tier])
 	else
-		return util.copy(default_tier_colors[safe_tier])
+		return util.copy(default_tier_colors[tier])
 	end
 end
 
 ---Gets the tier for the given `tier` and `prog_tier`.
 ---@param tier Tier The tier to get a color for; must be between 0 and 6.
----@param prog_tier? Tier The progression tier to get a color for; must be between 0 and 6.
+---@param prog_tier Tier? The progression tier to get a color for; must be between 0 and 6.
 ---@return Tier # The tier appropriate for the current settings.
 local function select_tier_for_current_mapping(tier, prog_tier)
-	local safe_tier = get_safe_tier(tier, "tier")
-	local safe_prog_tier = prog_tier ~= nil and get_safe_tier(prog_tier, "prog_tier") or nil
-
-	return _tiers.use_progression and safe_prog_tier or safe_tier
+	return _tiers.use_progression and prog_tier or tier
 end
+
+local check_get_tier = V.signature("get_tier", {
+	{
+		"tier",
+		V.any_of(
+			FrameworkCommon.tier,
+			V.shape({
+				tier = FrameworkCommon.tier,
+				prog_tier = FrameworkCommon.tier:optional(),
+			}):describe_as("a PrototypeTierValue")
+		),
+	},
+	{ "prog_tier", FrameworkCommon.tier:optional() },
+})
 
 ---
 ---Gets the tier appropriate for the current settings, for the provided `tier` and `prog_tier`.
 ---
 ---#### Parameters
 ---@param tier Tier|PrototypeTierValue The tier to get a color for; must be between 0 and 6, or a `PrototypeTierValue` object.
----@param prog_tier? Tier The progression tier to get a color for; must be between 0 and 6. Ignored if `tier` is a `PrototypeTierValue`.
+---@param prog_tier Tier? The progression tier to get a color for; must be between 0 and 6. Ignored if `tier` is a `PrototypeTierValue`.
 ---
 ---#### Returns
 ---@return Tier # The tier appropriate for the current settings.
@@ -137,6 +144,8 @@ end
 ---@throws Thrown when either of `tier` or `prog_tier` is not an integer between 0 and 6.
 ---@nodiscard
 function _tiers.get_tier(tier, prog_tier)
+	check_get_tier(tier, prog_tier)
+
 	if type(tier) == "table" then
 		return select_tier_for_current_mapping(tier.tier, tier.prog_tier)
 	else
@@ -144,6 +153,9 @@ function _tiers.get_tier(tier, prog_tier)
 	end
 end
 
+---Indicates whether the given `icon_datum` is a layer of a tier label: a layer whose `icon` is a
+---file in the tier label graphics of this mod. A tier label consists of two such layers: the
+---untinted artwork and a tinted copy over it.
 ---@param icon_datum IconData
 ---@return boolean
 ---@nodiscard
@@ -165,14 +177,14 @@ end
 ---    -- Do something.
 ---end
 ---```
+---@throws Thrown when `icon_data` is not an array of `IconData` objects.
 ---@nodiscard
 function _tiers.is_icons_tier_labeled(icon_data)
-	-- A labeled icon will have minimum three layers.
-	if icon_data and #icon_data >= 3 then
-		for i = #icon_data, 1, -1 do
-			if is_tier_label_icon(icon_data[i]) then
-				return true
-			end
+	Common.icon_data:assert(icon_data, "icon_data", "is_icons_tier_labeled")
+
+	for _, icon_datum in pairs(icon_data) do
+		if is_tier_label_icon(icon_datum) then
+			return true
 		end
 	end
 
@@ -200,13 +212,14 @@ end
 ---    -- Do something!
 ---end
 ---```
+---@throws Thrown when `icon_data` is not an array of `IconData` objects.
 ---@nodiscard
 function _tiers.get_tier_from_icons(icon_data)
-	if icon_data and #icon_data >= 3 then
-		for i = #icon_data, 1, -1 do
-			if is_tier_label_icon(icon_data[i]) then
-				return tonumber(icon_data[i].icon:match("(%d+)%.png")) --[[@as Tier]]
-			end
+	Common.icon_data:assert(icon_data, "icon_data", "get_tier_from_icons")
+
+	for _, icon_datum in pairs(icon_data) do
+		if is_tier_label_icon(icon_datum) then
+			return tonumber(icon_datum.icon:match("(%d+)%.png")) --[[@as Tier]]
 		end
 	end
 
@@ -221,7 +234,7 @@ end
 ---
 ---#### Returns
 ---@return IconData[] icon_data A copy of `icon_data` without any tier labels.
----@return IconData[] tier_labels A copy of the removed tier labels.
+---@return IconData[] tier_labels A copy of the removed tier labels, or an empty array if the icon is not tier labeled.
 ---
 ---#### Examples
 ---```lua
@@ -232,25 +245,32 @@ end
 ----- Remove the tier labels from the assembling-machine-3 and keep a copy of the removed tier labels.
 ---local icon_without_tier_labels, removed_tier_labels = _tiers.remove_tier_labels_from_icons(icon_data)
 ---```
+---@throws Thrown when `icon_data` is not an array of `IconData` objects.
 ---@nodiscard
 function _tiers.remove_tier_labels_from_icons(icon_data)
-	assert(icon_data, "Invalid parameter: 'icon_data' must not be nil.")
+	Common.icon_data:assert(icon_data, "icon_data", "remove_tier_labels_from_icons")
 
-	local icon_data_copy = util.copy(icon_data)
+	---@type IconData[]
+	local stripped_icon_data = {}
 
 	---@type IconData[]
 	local removed_layers = {}
 
-	if #icon_data >= 2 then
-		for i = #icon_data_copy, 1, -1 do
-			if is_tier_label_icon(icon_data_copy[i]) then
-				table.insert(removed_layers, 1, table.remove(icon_data_copy, i))
-			end
+	for _, icon_datum in pairs(util.copy(icon_data)) do
+		if is_tier_label_icon(icon_datum) then
+			removed_layers[#removed_layers + 1] = icon_datum
+		else
+			stripped_icon_data[#stripped_icon_data + 1] = icon_datum
 		end
 	end
 
-	return icon_data_copy, removed_layers
+	return stripped_icon_data, removed_layers
 end
+
+local check_add_tier_labels_to_icons = V.signature("add_tier_labels_to_icons", {
+	{ "tier", FrameworkCommon.tier },
+	{ "icon_data", Common.icon_data },
+})
 
 ---
 ---Adds tier labels representing the given `tier` to a copy of the given `icon_data`.
@@ -287,40 +307,31 @@ end
 ---local labeled_icon = _tiers.add_tier_labels_to_icons(1, icon_data)
 ---```
 ---@throws Thrown when `tier` is not an integer between 0 and 6.
----@throws Thrown when `icon_data` is `nil`.
----@throws Thrown when `icon_data[n].icon` is not an absolute file path with a valid extension.
----@throws Thrown when `icon_data[n].icon_size` is not a positive integer.
+---@throws Thrown when `icon_data` is not an array of `IconData` objects.
 ---@nodiscard
 function _tiers.add_tier_labels_to_icons(tier, icon_data)
-	local safe_tier = get_safe_tier(tier, "tier")
-	assert(icon_data, "Invalid parameter: 'icon_data' must not be nil.")
+	check_add_tier_labels_to_icons(tier, icon_data)
 
 	if not _tiers.show_labels then
 		return util.copy(icon_data)
 	end
 
-	local icon_data_copy = sprite_utils.icons.add_missing_icons_defaults(icon_data, "standard")
+	local icon_data_copy = _sprite_utils.icons.add_missing_icons_defaults(icon_data, "standard")
 
 	-- There is not a 0th tier pip.
 	if tier > 0 then
-		local labeling_style = _tiers.tier_label_style
-		local icon_file_name = "__reskins-framework__/graphics/icons/tiers/" .. labeling_style .. "/" .. safe_tier .. ".png"
-
-		icon_data_copy = sprite_utils.icons.compose_icons("standard", icon_data, {
-			icon = icon_file_name,
-			icon_size = 64,
-		}, {
-			icon = icon_file_name,
-			icon_size = 64,
-			---@diagnostic disable-next-line: param-type-mismatch
-			tint = util.get_color_with_alpha(_tiers.get_tint(tier), 0.75),
-		})
+		icon_data_copy = _sprite_utils.icons.compose_icons("standard", icon_data, _tiers.get_tier_label(tier))
 	end
 
 	return icon_data_copy
 end
 
 ---
+local check_add_tier_labels_to_icon = V.signature("add_tier_labels_to_icon", {
+	{ "tier", FrameworkCommon.tier },
+	{ "icon_datum", Common.icon_datum },
+})
+
 ---Adds tier labels representing the given `tier` to a copy of the given `icon_datum`.
 ---
 ---- If tier labeling is disabled, an unmodified copy of `icon_datum` is returned, packaged as an
@@ -348,15 +359,24 @@ end
 ---local labeled_icon = _tiers.add_tier_labels_to_icon(1, icon_datum)
 ---```
 ---@throws Thrown when `tier` is not an integer between 0 and 6.
----@throws Thrown when `icon_datum` is `nil`.
----@throws Thrown when `icon_datum.icon` is not an absolute file path with a valid extension.
----@throws Thrown when `icon_datum.icon_size` is not a positive integer.
+---@throws Thrown when `icon_datum` is not an `IconData` object.
 ---@nodiscard
 function _tiers.add_tier_labels_to_icon(tier, icon_datum)
+	check_add_tier_labels_to_icon(tier, icon_datum)
+
 	return _tiers.add_tier_labels_to_icons(tier, { icon_datum })
 end
 
 ---
+local check_create_icon_with_tier_labels = V.signature("create_icon_with_tier_labels", {
+	{ "tier", FrameworkCommon.tier },
+	{ "icon", Common.mod_file_path },
+	{ "icon_size", Common.sprite_size:optional() },
+	{ "scale", Common.positive_number:optional() },
+	{ "shift", Common.vector:optional() },
+	{ "tint", Common.color:optional() },
+})
+
 ---Adds tier labels representing the given `tier` to an icon created from the given parameters.
 ---
 ---- The parameters are assumed to be for an entity, item, fluid, or recipe icon. Technology icons are not supported.
@@ -379,18 +399,31 @@ end
 ---```
 ---@throws Thrown when `tier` is not an integer between 0 and 6.
 ---@throws Thrown when `icon` is not an absolute file path with a valid extension.
----@throws Thrown when `icon_size` is not a positive integer.
+---@throws Thrown when `icon_size` is not a sprite size in pixels.
+---@throws Thrown when `scale` is not a positive number, `shift` is not a `Vector`, or `tint` is not a `Color`.
 ---@nodiscard
 function _tiers.create_icon_with_tier_labels(tier, icon, icon_size, scale, shift, tint)
-	return _tiers.add_tier_labels_to_icon(tier, sprite_utils.icons.create_icon(icon, icon_size, scale, shift, tint))
+	check_create_icon_with_tier_labels(tier, icon, icon_size, scale, shift, tint)
+
+	return _tiers.add_tier_labels_to_icon(tier, _sprite_utils.icons.create_icon(icon, icon_size, scale, shift, tint))
 end
 
+---The parameters of `deferrable_icon_with_tier_labels`. Exactly one of `composition`, `icon_data`,
+---and `icon_datum` supplies the icon.
 ---@class DeferrableIconWithTierLabelParams
+---The tier of the label. An integer from 0 to 6.
 ---@field tier Tier
+---The name of the prototype to be assigned the icon.
 ---@field name string
+---The type name of the prototype to be assigned the icon.
 ---@field type_name string
+---A composition holding the icon. Its groups, content, and operations are kept.
+---@field composition? IconComposition
+---The icon as a single `IconData` object.
 ---@field icon_datum? IconData
+---The icon as an array of `IconData` objects.
 ---@field icon_data? IconData[]
+---Controls which related prototypes the icon cascades to, once assigned.
 ---@field options? IconAssignmentOptions
 
 local hide_tier_label_for_type = {
@@ -398,67 +431,176 @@ local hide_tier_label_for_type = {
 	["pipe-to-ground"] = not _tiers.show_labels_on_pipes,
 }
 
----Adds tier labels to the icon contained in the specified `deferrable_icon`, setting the
----`deferrable_icon.pictures` field to a sprite created from the unmodified
----`deferrable_icon.icon_data`.
 ---
----This method is used to add tier labels to an icon such that, when assigned to a prototype using
----`assign_icons_to_prototype_and_related_prototypes`, the item-on-ground will not include the tier
----labels.
+---The group definition for tier labels in an icon composition.
+---
+---- The group is a `label` group: its content is positioned relative to the finished icon, is
+---  not scaled or shifted with the artwork, and is not included when the composition is embedded
+---  in another composition.
+---- `tintable` is `false`; `set_tint` and `blend_tint` are not applied to the label.
+---- `unique` is `true`; adding a label replaces the existing label.
+---- The group is included in the `pictures` projection only when "Show tier labels in world" is
+---  enabled.
+---@type IconCompositionGroup
+_tiers.tier_label_group = {
+	name = "tier-label",
+	stratum = "label",
+	tintable = false,
+	unique = true,
+	projections = _tiers.show_labels_in_world and { pictures = {} } or nil,
+}
+
+---
+---Gets the layers of the tier label for the given `tier`: the label artwork in the current style,
+---and a copy of it tinted with the color of the tier.
+---
+---- The label is sized for entity, item, fluid, and recipe icons. Technology icons are not
+---  supported.
+---- There is no label for tier `0`.
 ---
 ---#### Parameters
----@param paramsOrTier Tier|DeferrableIconWithTierLabelParams
----@param name? string The name of the prototype to be assigned this icon.
----@param type_name? string The type name of the prototype to be assigned this icon.
----@param icon? IconData|IconData[] The icon data to store for deferred assignment.
----@param options? IconAssignmentOptions Controls which related prototypes the icon cascades to, once assigned.
----@return DeferrableIconData
----@overload fun(params: DeferrableIconWithTierLabelParams): DeferrableIconData
----@overload fun(tier: Tier, name: string, type_name: string, icon_datum: IconData, options?: IconAssignmentOptions): DeferrableIconData
----@overload fun(tier: Tier, name: string, type_name: string, icon_data: IconData[], options?: IconAssignmentOptions): DeferrableIconData
+---@param tier Tier The tier of the label. An integer from 1 to 6.
+---
+---#### Returns
+---@return SafeIconData[] # The two layers of the label.
+---@throws Thrown when `tier` is not an integer between 1 and 6.
 ---@nodiscard
-function _tiers.deferrable_icon_with_tier_labels(paramsOrTier, name, type_name, icon, options)
-	if type(paramsOrTier) == "number" then
-		local tier = get_safe_tier(paramsOrTier, "tier")
-		assert(name ~= nil, "Invalid parameter: 'name' must not be nil.")
-		assert(type(name) == "string", "Invalid parameter: type of 'name' must be string, but was " .. type(name) .. ".")
-		assert(type_name ~= nil, "Invalid parameter: 'type_name' must not be nil.")
-		assert(
-			type(type_name) == "string",
-			"Invalid parameter: type of 'type_name' must be string, but was " .. type(type_name) .. "."
-		)
-		assert(icon ~= nil, "Invalid parameter: 'icon_data' must not be nil.")
-		assert(type(icon) == "table", "Invalid parameter: type of 'icon_data' must be table, but was " .. type(icon) .. ".")
+function _tiers.get_tier_label(tier)
+	FrameworkCommon.labeled_tier:assert(tier, "tier", "get_tier_label")
 
-		local icon_data = icon.icon ~= nil and { icon } or icon
-		local show_labels = _tiers.show_labels and not hide_tier_label_for_type[type_name]
-		local hide_labels_in_world = _tiers.show_labels_in_world ~= true
+	local icon_file_name = "__reskins-framework__/graphics/icons/tiers/"
+		.. _tiers.tier_label_style
+		.. "/"
+		.. tier
+		.. ".png"
 
-		---@cast icon_data IconData[]
-		return {
-			name = name,
-			type_name = type_name,
-			icon_data = show_labels and _tiers.add_tier_labels_to_icons(tier, icon_data) or icon_data,
-			pictures = hide_labels_in_world and sprite_utils.sprites.create_sprite_from_icons(icon_data) --[[@as SpriteSheet]] or nil,
-			options = options,
-		}
-	else
-		local params = paramsOrTier
-		assert(
-			type(params) == "table",
-			"Invalid parameter: type of 'params' must be table, but was " .. type(params) .. "."
-		)
+	---@type IconData[]
+	local icon_data = {
+		{ icon = icon_file_name },
+		{ icon = icon_file_name, tint = util.get_color_with_alpha(_tiers.get_tint(tier), 0.75) },
+	}
 
-		local icon_data = params.icon_data or { params.icon_datum }
-		return _tiers.deferrable_icon_with_tier_labels(
-			params.tier,
-			params.name,
-			params.type_name,
-			icon_data,
-			params.options
-		)
-	end
+	return _sprite_utils.icons.add_missing_icons_defaults(icon_data, "default")
 end
+
+---
+---Indicates whether tier labels are drawn on prototypes of `type_name` under the current settings.
+---
+---- Returns `false` when "Show tier labels" is disabled, and for `pipe` and `pipe-to-ground`
+---  prototypes when "Show tier labels on pipes" is disabled.
+---
+---#### Parameters
+---@param type_name string The type name of the prototype.
+---
+---#### Returns
+---@return boolean # `true` if tier labels are shown; otherwise, `false`.
+---@throws Thrown when `type_name` is not a non-empty string.
+---@nodiscard
+function _tiers.are_tier_labels_shown_for(type_name)
+	Common.prototype_type_name:assert(type_name, "type_name", "are_tier_labels_shown_for")
+
+	return _tiers.show_labels and hide_tier_label_for_type[type_name] ~= true
+end
+
+local check_deferrable_icon_with_tier_labels = V.signature("deferrable_icon_with_tier_labels", {
+	{
+		"params",
+		V.shape({
+			tier = FrameworkCommon.tier,
+			name = Common.prototype_name,
+			type_name = Common.prototype_type_name,
+			composition = Common.icon_composition:optional(),
+			icon_datum = Common.icon_datum:optional(),
+			icon_data = Common.icon_data:optional(),
+			options = Common.icon_assignment_options:optional(),
+		})
+			:where(function(value)
+				local defined = 0
+				for _, field in pairs({ "composition", "icon_data", "icon_datum" }) do
+					if value[field] ~= nil then
+						defined = defined + 1
+					end
+				end
+
+				return defined == 1
+			end, "must define exactly one of the 'composition', 'icon_data', and 'icon_datum' fields")
+			:describe_as("a DeferrableIconWithTierLabelParams"),
+	},
+})
+
+---Gets a deferrable icon with the tier label for the given `tier` added, as the current settings
+---allow.
+---
+---- An icon given as an array or a single layer has any tier label layers removed and is held in
+---  the canvas group of a composition. A composition given as `params.composition` is used as it
+---  is; tier label layers in its content are not removed, so content read from a prototype should
+---  be passed through `remove_tier_labels_from_icons` before it is added.
+---- The label for `tier` is held in `tiers.tier_label_group`, replacing any label the composition
+---  holds there. When `tier` is 0, or the settings hide tier labels for prototypes of `type_name`,
+---  the group is removed instead.
+---- `pictures` is set when the pictures differ from the icon: the label is hidden in world, or the
+---  composition holds a light or other content that is drawn only in the pictures.
+---
+---#### Parameters
+---@param params DeferrableIconWithTierLabelParams The tier, the prototype to be assigned the icon, and the icon.
+---
+---#### Returns
+---@return DeferrableIconData # The labeled icon, ready for `icons.assign_deferrable_icon`.
+---
+---#### Examples
+---```lua
+---local deferrable_icon = _tiers.deferrable_icon_with_tier_labels({
+---    tier = tier,
+---    name = name,
+---    type_name = "assembling-machine",
+---    composition = get_icon_composition({ tint = tint }):add_light(sprites_api.get_sprite_light_layer(_defines.light.fuel, tint)),
+---})
+---_sprite_utils.icons.assign_deferrable_icon(deferrable_icon)
+---```
+---@throws Thrown when `params.tier` is not an integer between 0 and 6.
+---@throws Thrown when `params.name` or `params.type_name` is not a non-empty string.
+---@throws Thrown when `params` does not define exactly one of `composition`, `icon_data`, and `icon_datum`.
+---@throws Thrown when `params.composition` is not an `IconComposition`, or the icon is not an `IconData` object or an array of them.
+---@throws Thrown when `params.options` is not an `IconAssignmentOptions`.
+---@see Tiers.remove_tier_labels_from_icons
+---@see Tiers.tier_label_group
+---@nodiscard
+function _tiers.deferrable_icon_with_tier_labels(params)
+	check_deferrable_icon_with_tier_labels(params)
+
+	local tier, name, type_name, options = params.tier, params.name, params.type_name, params.options
+	local composition = params.composition
+	local icon = params.icon_data or params.icon_datum
+
+	if composition == nil then
+		---@cast icon -?
+		local icon_data = icon.icon ~= nil and { icon } or icon
+		---@cast icon_data IconData[]
+		local artwork = _tiers.remove_tier_labels_from_icons(icon_data)
+		composition = IconComposition:from_icons(artwork)
+	end
+
+	if tier == 0 or not _tiers.are_tier_labels_shown_for(type_name) then
+		composition = composition:remove(_tiers.tier_label_group.name)
+	else
+		composition = composition:add(_tiers.tier_label_group, _tiers.get_tier_label(tier))
+	end
+
+	local labeled_icon_data, pictures = composition:build()
+
+	return {
+		name = name,
+		type_name = type_name,
+		icon_data = labeled_icon_data,
+		pictures = pictures,
+		options = options,
+	}
+end
+
+local check_add_tier_labels_to_prototype = V.signature("add_tier_labels_to_prototype", {
+	{ "tier", FrameworkCommon.tier },
+	{ "prototype", Common.prototypes.prototype_with_icons },
+})
 
 ---
 ---Adds tier labels for the given `tier` to the icon of the given `prototype` and related prototypes
@@ -474,26 +616,33 @@ end
 ---tiers.add_tier_labels_to_prototype_by_reference(1, data.raw.car["tank"])
 ---```
 ---@throws Thrown when `tier` is not an integer between `0` and `6`.
----@throws Thrown when `prototype` has no defined field `icon` or `icons`.
----@throws Thrown when `prototype` has an icon with field `icon` that is not an absolute file path with a valid extension.
----@throws Thrown when `prototype` has an icon with field `icon_size` that is not a positive integer.
+---@throws Thrown when `prototype` does not define an icon through the `icon` or `icons` field.
+---@throws Thrown when the icon of `prototype` is not an `IconData` object or an array of them.
 function _tiers.add_tier_labels_to_prototype(tier, prototype)
+	check_add_tier_labels_to_prototype(tier, prototype)
+
 	local deferrable_icon = _tiers.deferrable_icon_with_tier_labels({
 		tier = tier,
 		name = prototype.name,
 		type_name = prototype.type,
-		icon_data = sprite_utils.icons.get_icon_from_prototype(prototype),
+		icon_data = _sprite_utils.icons.get_icon_from_prototype(prototype),
 	})
 
-	sprite_utils.icons.assign_deferrable_icon(deferrable_icon)
+	_sprite_utils.icons.assign_deferrable_icon(deferrable_icon)
 end
+
+local check_add_tier_labels_to_named_prototype = V.signature("add_tier_labels_to_named_prototype", {
+	{ "tier", FrameworkCommon.tier },
+	{ "name", Common.prototype_name },
+	{ "type_name", Common.prototypes.is_registered_type },
+}, { Common.prototypes.names_an_existing_prototype() })
 
 ---
 ---Adds tier labels for the given `tier` to the icon of the prototype with the given `name` and
 ---`type_name` and related prototypes that follow standard naming conventions, such as item,
 ---explosion and remnant prototypes.
 ---
----- If `tier` is `0` or the prototype does not exist, no action is taken.
+---- If `tier` is `0`, no action is taken.
 ---- Missing icon fields are set to default values as appropriate.
 ---
 ---#### Parameters
@@ -504,19 +653,18 @@ end
 ---#### Examples
 ---```lua
 ----- Add tier labels to the tank prototype and related prototypes.
----tiers.add_tier_labels_to_prototype_by_name(1, "tank", "car")
+---tiers.add_tier_labels_to_named_prototype(1, "tank", "car")
 ---```
----@throws Thrown when `name` is `nil` or an empty string.
----@throws Thrown when `type_name` is `nil` or an empty string.
 ---@throws Thrown when `tier` is not an integer between 0 and 6.
----@throws Thrown when the prototype has no defined field `icon` or `icons`.
----@throws Thrown when the prototype icon has an with field `icon` that is not an absolute file path with a valid extension.
----@throws Thrown when the prototype icon has an with field `icon_size` that is not a positive integer.
+---@throws Thrown when `name` is not a non-empty string.
+---@throws Thrown when `type_name` is not a registered prototype type name.
+---@throws Thrown when no prototype of type `type_name` has the given `name`.
+---@throws Thrown when the prototype does not define an icon through the `icon` or `icons` field.
+---@throws Thrown when the icon of the prototype is not an `IconData` object or an array of them.
 function _tiers.add_tier_labels_to_named_prototype(tier, name, type_name)
-	assert(name and name ~= "", "Invalid parameter: 'name' must not be nil or an empty string.")
-	assert(type_name and type_name ~= "", "Invalid parameter: 'type_name' must not be nil or an empty string.")
+	check_add_tier_labels_to_named_prototype(tier, name, type_name)
 
-	_tiers.add_tier_labels_to_prototype(tier, data.raw[type_name][name])
+	_tiers.add_tier_labels_to_prototype(tier, data.raw[type_name][name] --[[@as PrototypeBase]])
 end
 
 return _tiers

@@ -2,12 +2,15 @@
 Version: 0.1.2
 Date: ????
   Features:
-    - Added new setting "Show tier labels in world", default off, to permit showing tier labels in the world.
-    - Added `deferrable_icon_with_tier_labels`, which now is the preferred way to get an icon with tier labels based on the current user settings. 
-      - Where the user does/does not want tier labels visible, the settings are automatically respected and the resulting deferrable icon is correctly configured and ready for assignment.
-    - `tiers.deferrable_icon_with_tier_labels` accepts `options`, an `IconAssignmentOptions` carried on the deferrable icon to control which related prototypes the icon cascades to once assigned.
-  Breaking Changes:
-    - Removed `get_deferrable_icon_for_prototype_with_added_tier_labels`, use `deferrable_icon_with_tier_labels` instead and assign the result.
+    - Added setting "Show tier labels in world", default off.
+    - Added `tiers.deferrable_icon_with_tier_labels`, which is the preferred way to package an icon with tier labels for assignment and manages compliance with the current user settings and complexities around the pictures field for in-world icons.
+    - Added `tiers.tier_label_group`, the icon composition group for tier labels.
+    - Added support for icon compositions from Artisanal Reskins: Sprite Utils.
+    - Added `api/validation` with preconfigured validators for types used by the framework.
+  Changes:
+    - `tiers` functions now validate parameters, and will throw on invalid inputs with descriptive messages.
+    - `tiers.add_tier_labels_to_named_prototype` now throws when the named prototype does not exist.
+    - Removed `get_deferrable_icon_for_prototype_with_added_tier_labels`; use `tiers.deferrable_icon_with_tier_labels` instead and assign the result.
 ---------------------------------------------------------------------------------------------------
 Version: 0.1.1
 Date: 2026-06-07
