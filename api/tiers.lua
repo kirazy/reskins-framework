@@ -154,7 +154,7 @@ function _tiers.get_tier(tier, prog_tier)
 end
 
 ---Indicates whether the given `icon_datum` is a layer of a tier label: a layer whose `icon` is a
----file in the tier label graphics of this mod. A tier label consists of two such layers: the
+---file in the tier label artwork of this mod. A tier label consists of two such layers: the
 ---untinted artwork and a tinted copy over it.
 ---@param icon_datum IconData
 ---@return boolean
@@ -423,7 +423,7 @@ end
 ---@field icon_datum? IconData
 ---The icon as an array of `IconData` objects.
 ---@field icon_data? IconData[]
----Controls which related prototypes the icon cascades to, once assigned.
+---Controls which related prototypes the icon is assigned to.
 ---@field options? IconAssignmentOptions
 
 local hide_tier_label_for_type = {
@@ -477,6 +477,7 @@ function _tiers.get_tier_label(tier)
 	---@type IconData[]
 	local icon_data = {
 		{ icon = icon_file_name },
+		---@diagnostic disable-next-line: assign-type-mismatch, param-type-mismatch
 		{ icon = icon_file_name, tint = util.get_color_with_alpha(_tiers.get_tint(tier), 0.75) },
 	}
 
