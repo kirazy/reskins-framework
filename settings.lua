@@ -1,4 +1,4 @@
--- util global is not available during settings stage and must be imported.
+-- The `util` global is not available during the settings stage and must be imported.
 local util = require("util")
 
 data:extend({

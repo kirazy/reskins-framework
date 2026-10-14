@@ -1,6 +1,6 @@
 ---@namespace Reskins.Framework
 
---- Provides methods for retrieving and validating startup settings.
+---Provides methods for retrieving and validating startup settings.
 ---
 ---#### Examples
 ---```lua
@@ -9,7 +9,6 @@
 ---@class Settings
 local _settings = {}
 
----
 ---Gets the value of the startup setting with the given `name`.
 ---@param name string The name of a startup setting.
 ---@return boolean|string|Color|double|int|nil # The value of the startup setting, if it exists; otherwise, `nil`.
