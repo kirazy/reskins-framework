@@ -1,7 +1,8 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.1.2
+Version: 0.2.0
 Date: ????
   Features:
+    - Updated for Factorio 2.1
     - Added setting "Show tier labels in world", default off.
     - Added `tiers.icon_assignment_with_tier_labels`, which is the preferred way to package an icon with tier labels for assignment and manages compliance with the current user settings and complexities around the pictures field for in-world icons.
     - Added `tiers.tier_label_group`, the icon composition group for tier labels.
