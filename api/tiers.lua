@@ -37,6 +37,10 @@ _tiers.show_labels_in_world = _tiers.show_labels
 _tiers.show_labels_on_pipes = _tiers.show_labels
 	and _settings.get_value("reskins-framework-show-tier-labels-on-pipes") == true
 
+---Indicates whether tier labels are added to the icons of transport belts and the entities that connect to them.
+_tiers.show_labels_on_belts = _tiers.show_labels
+	and _settings.get_value("reskins-framework-show-tier-labels-on-belts") == true
+
 ---@alias TierLabelStyle
 ---| "chevron" Chevrons.
 ---| "dots" Dots.
@@ -413,6 +417,13 @@ end
 local hide_tier_label_for_type = {
 	["pipe"] = not _tiers.show_labels_on_pipes,
 	["pipe-to-ground"] = not _tiers.show_labels_on_pipes,
+	["transport-belt"] = not _tiers.show_labels_on_belts,
+	["underground-belt"] = not _tiers.show_labels_on_belts,
+	["splitter"] = not _tiers.show_labels_on_belts,
+	["lane-splitter"] = not _tiers.show_labels_on_belts,
+	["linked-belt"] = not _tiers.show_labels_on_belts,
+	["loader"] = not _tiers.show_labels_on_belts,
+	["loader-1x1"] = not _tiers.show_labels_on_belts,
 }
 
 ---The group definition for tier labels in an icon composition.
@@ -467,6 +478,8 @@ end
 ---
 ---- Returns `false` when "Show tier labels" is disabled, and for `pipe` and `pipe-to-ground` prototypes when "Show tier
 ---  labels on pipes" is disabled.
+---- Returns `false` for `transport-belt`, `underground-belt`, `splitter`, `lane-splitter`, `linked-belt`, `loader`, and
+---  `loader-1x1` prototypes when "Show tier labels on belts" is disabled.
 ---
 ---#### Parameters
 ---@param type_name string The type name of the prototype.

@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.1
 Date: ????
+  Features:
+    - Added setting "Show tier labels on belts", default on, which shows or hides the tier labels of transport belts, underground belts, splitters, and loaders.
   Changes:
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0

@@ -49,6 +49,13 @@ data:extend({
 	},
 	{
 		type = "bool-setting",
+		name = "reskins-framework-show-tier-labels-on-belts",
+		setting_type = "startup",
+		order = "cc",
+		default_value = true,
+	},
+	{
+		type = "bool-setting",
 		name = "reskins-framework-use-custom-tier-colors",
 		setting_type = "startup",
 		order = "y",
