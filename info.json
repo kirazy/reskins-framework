@@ -8,7 +8,7 @@
 	"homepage": "https://github.com/kirazy/reskins-framework",
 	"dependencies": [
 		"base",
-		"reskins-sprite-utils >= 0.3.0"
+		"reskins-sprite-utils >= 0.3.1"
 	],
 	"package": {
 		"git_publish_branch": "dev2.1"
