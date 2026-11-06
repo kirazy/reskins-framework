@@ -7,6 +7,7 @@ Date: ????
   Changes:
     - `tiers.icon_assignment_with_tier_labels` now accepts every form of an icon definition, including `sources` and `label`, with an optional `tier`, default 0; it composes the icon in the icon defaults type of the prototype and returns `pictures` as an array of sprites.
     - `tiers.are_tier_labels_shown_for` now returns `false` for technologies, and technologies are no longer given tier labels.
+    - The "Show tier labels on pipes" setting now also shows or hides the tier labels of heat pipes, and `tiers.are_tier_labels_shown_for` follows it for `heat-pipe` prototypes.
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
 Date: 2026-11-01

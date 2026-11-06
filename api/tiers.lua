@@ -415,6 +415,7 @@ local hide_tier_label_for_type = {
 	["technology"] = true,
 	["pipe"] = not _tiers.show_labels_on_pipes,
 	["pipe-to-ground"] = not _tiers.show_labels_on_pipes,
+	["heat-pipe"] = not _tiers.show_labels_on_pipes,
 	["transport-belt"] = not _tiers.show_labels_on_belts,
 	["underground-belt"] = not _tiers.show_labels_on_belts,
 	["splitter"] = not _tiers.show_labels_on_belts,
@@ -474,8 +475,8 @@ end
 
 ---Indicates whether tier labels are drawn on prototypes of `type_name` under the current settings.
 ---
----- Returns `false` when "Show tier labels" is disabled, and for `pipe` and `pipe-to-ground` prototypes when "Show tier
----  labels on pipes" is disabled.
+---- Returns `false` when "Show tier labels" is disabled, and for `pipe`, `pipe-to-ground`, and `heat-pipe` prototypes
+---  when "Show tier labels on pipes" is disabled.
 ---- Returns `false` for `transport-belt`, `underground-belt`, `splitter`, `lane-splitter`, `linked-belt`, `loader`, and
 ---  `loader-1x1` prototypes when "Show tier labels on belts" is disabled.
 ---- Returns `false` for `technology` prototypes.
