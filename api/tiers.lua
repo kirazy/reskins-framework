@@ -61,9 +61,9 @@ _tiers.use_progression = _settings.get_value("reskins-framework-tier-mapping") =
 ---Represents the tier of a prototype under traditional and progression tier mapping.
 ---@class PrototypeTierValue
 ---The traditional tier of the prototype.
----@field tier integer
+---@field tier Tier
 ---The progression tier of the prototype.
----@field prog_tier? integer
+---@field prog_tier? Tier
 
 local is_using_custom_tier_colors = _settings.get_value("reskins-framework-use-custom-tier-colors") == true
 
