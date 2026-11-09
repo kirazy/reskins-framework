@@ -516,6 +516,7 @@ local function get_tier_labeled_composition(definition, type_name, name, exclude
 	local icon_definition = {}
 	for field, value in pairs(definition) do
 		if not excluded[field] then
+			---@diagnostic disable-next-line: assign-type-mismatch
 			icon_definition[field] = value
 		end
 	end
