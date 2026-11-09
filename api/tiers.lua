@@ -399,9 +399,16 @@ end
 ---Defines the icon of a prototype with the tier of its tier label, for `assign_icons_with_tier_labels` and
 ---`icon_assignment_with_tier_labels`. Exactly one of `icon_datum`, `icon_data`, `composition`, and `sources` supplies
 ---the icon.
+---
+---The tier of the label is `prog_tier` when tier labels use progression tier mapping and `prog_tier` is given, and
+---`tier` otherwise. When the tier is `nil`, the icon keeps the tier label that it has, which for `sources` is the tier
+---label of the first source. A tier of 0 removes the tier label. When the settings hide tier labels for the type of the
+---prototype, the icon has no tier label.
 ---@class TieredIconDefinition : IconDefinition
----The tier of the label. An integer between 0 and 6. Default `0`.
+---The traditional tier of the prototype; default `nil`.
 ---@field tier? Tier
+---The progression tier of the prototype; default `nil`.
+---@field prog_tier? Tier
 
 ---Defines the parameters of `icon_assignment_with_tier_labels`. Exactly one of `icon_datum`, `icon_data`,
 ---`composition`, and `sources` supplies the icon.
@@ -503,8 +510,8 @@ local function classify_tier_label_layers(icon_datum)
 	return is_tier_label_icon(icon_datum) and _tiers.tier_label_group or IconComposition.canvas_group
 end
 
----Gets the composition of the given `definition` with the tier label of its tier, as the current settings allow,
----without validating the tier.
+---Gets the composition of the given `definition` with the tier label of its tier under the current tier mapping, or
+---with the tier label of its icon when that tier is `nil`, as the current settings allow, without validating the tiers.
 ---@param definition TieredIconDefinition The definition.
 ---@param type_name string The type name of the prototype to which the icon is assigned.
 ---@param name string The name of the prototype to which the icon is assigned.
@@ -527,8 +534,21 @@ local function get_tier_labeled_composition(definition, type_name, name, exclude
 		{ classify = classify_tier_label_layers, name = name }
 	)
 
-	local tier = definition.tier or 0
-	if tier == 0 or not _tiers.are_tier_labels_shown_for(type_name) then
+	if not _tiers.are_tier_labels_shown_for(type_name) then
+		return composition:remove(_tiers.tier_label_group.name)
+	end
+
+	local tier = definition.tier
+	if _tiers.use_progression and definition.prog_tier ~= nil then
+		tier = definition.prog_tier
+	end
+
+	-- Keep the tier label of the icon.
+	if tier == nil then
+		return composition
+	end
+
+	if tier == 0 then
 		return composition:remove(_tiers.tier_label_group.name)
 	end
 
@@ -536,16 +556,22 @@ local function get_tier_labeled_composition(definition, type_name, name, exclude
 end
 
 ---The fields of `IconAssignmentWithTierLabelsParams` that are not fields of an `IconDefinition`.
-local ASSIGNMENT_PARAMS_FIELDS = { tier = true, name = true, type_name = true }
+local ASSIGNMENT_PARAMS_FIELDS = {
+	type_name = true,
+	name = true,
+	tier = true,
+	prog_tier = true,
+}
 
----The field of `TieredIconDefinition` that is not a field of an `IconDefinition`.
-local TIERED_DEFINITION_FIELDS = { tier = true }
+---The fields of `TieredIconDefinition` that are not fields of an `IconDefinition`.
+local TIERED_DEFINITION_FIELDS = { tier = true, prog_tier = true }
 
 local check_icon_assignment_with_tier_labels = V.signature("icon_assignment_with_tier_labels", {
 	{
 		"params",
-		V.struct({
+		V.class("IconAssignmentWithTierLabelsParams", {
 			tier = FrameworkCommon.tier:optional(),
+			prog_tier = FrameworkCommon.tier:optional(),
 			name = Common.prototype_name,
 			type_name = Common.prototype_type_name,
 			icon_datum = Common.icon_datum:optional(),
@@ -570,14 +596,18 @@ local check_icon_assignment_with_tier_labels = V.signature("icon_assignment_with
 	},
 })
 
----Gets an icon assignment with the tier label for the given `tier` added, as the current settings allow.
+---Gets an icon assignment with the tier label for the tier of the given `params`, as the current settings allow.
 ---
 ---- The icon is resolved as by `icons.get_icon_composition` of Artisanal Reskins: Sprite Utils, in the icon defaults
----  type of `params.type_name`. Tier label layers in an icon given as an array or a single layer are put in
----  `tiers.tier_label_group`, and tier label layers in the icon of a source are left out. A composition given as
----  `params.composition` is used as it is. Tier label layers in its content are not removed.
----- The label for `tier` is placed in `tiers.tier_label_group`, replacing any label the composition has there. When
----  `tier` is 0, or the settings hide tier labels for prototypes of `type_name`, the group is removed.
+---  type of `params.type_name`. Tier label layers in an icon given as an array or a single layer, and in the icon of
+---  the first source, are put in `tiers.tier_label_group`, and tier label layers in the icon of each other source are
+---  left out. A composition given as `params.composition` is used as it is. Tier label layers in its content are not
+---  removed.
+---- The tier of the label is `params.prog_tier` when tier labels use progression tier mapping and `params.prog_tier` is
+---  given, and `params.tier` otherwise.
+---- When the settings hide tier labels for prototypes of `type_name`, `tiers.tier_label_group` is removed. Otherwise,
+---  the label for the tier is placed in the group, replacing any label the composition has there. When the tier is 0,
+---  the group is removed. When the tier is `nil`, the composition keeps the label it has there.
 ---- The icon is built with `to` set to `params.type_name`.
 ---- `pictures` is set when the pictures differ from the icon: the label is hidden in world, or the composition contains
 ---  a light or other content that is drawn only in the pictures.
@@ -598,7 +628,7 @@ local check_icon_assignment_with_tier_labels = V.signature("icon_assignment_with
 ---})
 ---_sprite_utils.icons.apply_icon_assignment(icon_assignment)
 ---```
----@throws When `params.tier` is not an integer between 0 and 6.
+---@throws When `params.tier` or `params.prog_tier` is not an integer between 0 and 6.
 ---@throws When `params.name` or `params.type_name` is `nil` or an empty string.
 ---@throws When `params` does not define exactly one of `icon_datum`, `icon_data`, `composition`, and `sources`.
 ---@throws When a field of `params` is not valid for an `IconAssignmentWithTierLabelsParams`, or is not one of its fields.
@@ -661,11 +691,12 @@ local check_assign_icons_with_tier_labels = V.signature("assign_icons_with_tier_
 ---        },
 ---    },
 ---})
------ The plates have the tier label of tier 1. The recipe shows the plate that it makes, without a tier label.
+----- The plates have the tier label of tier 1.
+----- The recipe shows the plate that it makes, with the tier label of the plate.
 ---```
 ---@throws When `type_name` is not a registered prototype type name.
 ---@throws When `definitions` is not a table of tables keyed by prototype names.
----@throws When a definition for a prototype that exists has a `tier` that is not an integer between 0 and 6, or is not a valid `IconDefinition` otherwise.
+---@throws When a definition for a prototype that exists has a `tier` or `prog_tier` that is not an integer between 0 and 6, or is not a valid `IconDefinition` otherwise.
 ---@see Tiers.icon_assignment_with_tier_labels
 function _tiers.assign_icons_with_tier_labels(type_name, definitions)
 	check_assign_icons_with_tier_labels(type_name, definitions)
@@ -679,11 +710,9 @@ function _tiers.assign_icons_with_tier_labels(type_name, definitions)
 	for _, name in pairs(names) do
 		if data.raw[type_name][name] then
 			local definition = definitions[name]
-			optional_tier:assert(
-				definition.tier,
-				_result.child_path("definitions", name) .. ".tier",
-				"assign_icons_with_tier_labels"
-			)
+			local path = _result.child_path("definitions", name)
+			optional_tier:assert(definition.tier, path .. ".tier", "assign_icons_with_tier_labels")
+			optional_tier:assert(definition.prog_tier, path .. ".prog_tier", "assign_icons_with_tier_labels")
 
 			local composition = get_tier_labeled_composition(definition, type_name, name, TIERED_DEFINITION_FIELDS)
 			local icon_data, pictures = composition:build({ to = type_name })
