@@ -2,13 +2,15 @@
 Version: 0.2.1
 Date: ????
   Features:
-    - Added setting "Show tier labels on belts", default on, which shows or hides the tier labels of transport belts, underground belts, splitters, and loaders.
-    - Added `tiers.assign_icons_with_tier_labels`, which assigns a table of icon definitions from Artisanal Reskins: Sprite Utils to the prototypes of one type, each with the tier label of its `tier`, and leaves out the tier labels of the icons it reads from other prototypes.
+    - Added setting "Show tier labels on belts", default on, for transport belts, underground belts, splitters, and loaders.
+    - Added `tiers.assign_icons_with_tier_labels`, which assigns icon definitions from Artisanal Reskins: Sprite Utils with tier labels in batch to the prototypes of a given type.
     - Added `settings-utils.set_default_tier_color`, which may be imported and used during the settings stage to override the standard tier colors.
   Changes:
-    - `tiers.icon_assignment_with_tier_labels` now accepts every form of an icon definition, including `sources` and `label`, with an optional `tier`, default 0; it composes the icon in the icon defaults type of the prototype and returns `pictures` as an array of sprites.
-    - `tiers.are_tier_labels_shown_for` now returns `false` for technologies, and technologies are no longer given tier labels.
-    - The "Show tier labels on pipes" setting now also shows or hides the tier labels of heat pipes, and `tiers.are_tier_labels_shown_for` follows it for `heat-pipe` prototypes.
+    - `tiers.icon_assignment_with_tier_labels` now accepts every form of an icon definition, with an optional `tier`, default 0, and returns `pictures` as an array of sprites.
+    - The "Show tier labels on pipes" setting now also applies to heat pipes; `tiers.are_tier_labels_shown_for` now returns the applicable condition for `heat-pipe` prototypes.
+    - `tiers.are_tier_labels_shown_for` now returns `false` for `"technology"`.
+  Bugfixes:
+    - Fixed that tier labels could be added to technology icons under some circumstances.
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.0
 Date: 2026-11-01
