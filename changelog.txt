@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.2.1
-Date: ????
+Date: 2026-11-09
   Features:
     - Added setting "Show tier labels on belts", default on, for transport belts, underground belts, splitters, and loaders.
     - Added `tiers.assign_icons_with_tier_labels`, which assigns icon definitions from Artisanal Reskins: Sprite Utils with tier labels in batch to the prototypes of a given type.
